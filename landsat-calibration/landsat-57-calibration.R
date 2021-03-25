@@ -111,7 +111,7 @@ library(automap)
 library(sp)
 
 #install.packages("USAboundaries")
-library(USAboundaries)
+#library(USAboundaries)
 
 #install.packages("sf")
 library(sf)
@@ -133,71 +133,73 @@ library(PBSmapping)
 
 #### SET DIRECTORIES ####
   # Set root directory
-  wd_root <- "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc"
+  wd_root <- "../"
   
   # Imports folder (store all import files here)
-  wd_imports <- paste0(wd_root,"C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/imports/")
+  wd_imports <- paste0(wd_root,"/imports/")
   # Exports folder (save all figures, tables here)
-  wd_exports <- paste0(wd_root,"C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports/")
+  wd_exports <- paste0(wd_root,"/exports/")
   
-  wd_figures <- paste0(wd_exports, "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports/ssc-figures")
-  wd_exports_gc <- paste0(wd_exports,"C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports/ssc-gc-plots")
-  wd_station_standalone <- paste0(wd_exports, "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports/ssc-station-vs-standalone-models")
-  wd_standalone_models <- paste0(wd_exports, "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports/ssc-standalone-models")
-  wd_standalone_figures <- paste0(wd_standalone_models, "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports/ssc-standalone-figures")
-  wd_autocorrelation <- paste0(wd_exports, "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports/ssc-autocorrelation")
+  wd_figures <- paste0(wd_exports, "/exports/ssc-figures")
+  wd_exports_gc <- paste0(wd_exports,"/exports/ssc-gc-plots")
+  wd_station_standalone <- paste0(wd_exports, "/exports/ssc-station-vs-standalone-models")
+  wd_standalone_models <- paste0(wd_exports, "/exports/ssc-standalone-models")
+  wd_standalone_figures <- paste0(wd_standalone_models, "/exports/ssc-standalone-figures")
+  wd_autocorrelation <- paste0(wd_exports, "/exports/ssc-autocorrelation")
 
   # Create folders within root directory to organize outputs if those folders do not exist
   export_folder_paths <- c(wd_exports, wd_figures, wd_exports_gc,wd_station_standalone, 
                            wd_standalone_models, wd_standalone_figures, wd_autocorrelation)
+  
  
   #### INITIALIZE MAP DATA FOR TAQUARI ####
-  setwd("C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/imports/shape/")
-  
-  # get states shapefile for clipping/display
-  us_states <-  us_boundaries(map_date = NULL, type = c("state"), resolution = c("low"), states = NULL)
-  
-  #taquari <- taquari[taquari$state_abbr != "AK" & taquari$state_abbr != "HI" & taquari$state_abbr != "PR",]
-  
-  # convert shapefile to Spatial class
-  taquari <- as(taquari, 'Spatial')
-  
-  # plot(taquari)
-  # plot(taquari_merge)
+  setwd(wd_imports)
   
   # set projection for states shapefile
   projection <- CRS("+proj=longlat +datum=WGS84 +no_defs")
   
   # import taquari provinces
-  taquari_prov <- read_sf(dsn = "taquari", layer = "estacoes_sed_gee_taquari.shp")
-  # plot(taquari_prov)
-  taquari_geom <- st_geometry(taquari_prov)
+  taquari <- read_sf(dsn = "../imports/shape/estacoes_sed_gee_taquari.shp", layer = "estacoes_sed_gee_taquari")
+  taquari_geom <- st_geometry(taquari)
   # attributes(taquari_geom)
+
+  # convert shapefile to Spatial class
+  taquari <- as(taquari, 'Spatial')
+  taquari <- spTransform(taquari, projection)
   
-  # do conversions and projections for canadian provinces to match us states
-  canada_prov <- as(canada_prov, 'Spatial')
+  # fortify state shapefile.
+  #taquari <- fortify(taquari)
   
-  canada_prov <- spTransform(canada_prov, projection)
+  #####Se quiser visualizar os pontos, descomenta a linha abaixo
+  #plot(taquari)
+
+  
+  #####Não precisamos igualar a projeção porque estamos usando apenas uma camada
   # coordinates(canada_prov) <- ~long+lat
-  proj4string(canada_prov) <- proj4string(us_states)
+  #proj4string(canada_prov) <- proj4string(us_states)
   
-  names(canada_prov) <- c('name','frenchName') # rename columns labeling canadian provinces
-  canada_prov <- canada_prov[,c('name')] # only select column with province name
-  us_states <- us_states[,c('name')] # only select column with province name
-  us_states <- rbind(us_states,canada_prov) # combine canadian and us shapefiles
   
-  # fortify state shapefile
-  us_ca <- fortify(us_states)
+  ######Não precisamos deste bloco pq ele só está renomeando a 
+  ######coluna das camadas, selecionando as que tem nome e juntando 
+  ######os pontos do eua com canada.
+  #names(canada_prov) <- c('name','frenchName') # rename columns labeling canadian provinces
+  #canada_prov <- canada_prov[,c('name')] # only select column with province name
+  #us_states <- us_states[,c('name')] # only select column with province name
+  #us_states <- rbind(us_states,canada_prov) # combine canadian and us shapefiles
   
-      #### --- ####
+  
+  #### --- ####
   #### IMPORT AND CLEAN -- LANDSAT DATA ####
   set.seed(1)
   # raw continuous data for regression
   
   # Import landsat spectral data from each site of interest
-  ls_raw <- fread('C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GEE/Taquari/table1_taquari.csv') 
+  ls_raw <- fread("../imports/gee/table1_taquari.csv") 
   
-  ls_raw_1 <- na.omit(ls_raw[,':='(site_no = ifelse(name == "",as.character(site_no),gsub('usgs|qw|dv',"",name)),
+  ###### Coloque para a coluna site_no como taquari, mas acho que vamos precisar colocar
+  ###### o nome da estação na hora de exportar os dados do GEE. (não tenho certeza disso ainda)
+  #ls_raw_1 <- na.omit(ls_raw[,':='(site_no = "ifelse(name == "",as.character(site_no),gsub('usgs|qw|dv',"",name))",
+  ls_raw_1 <- na.omit(ls_raw[,':='(site_no = "Taquari",
                                    # Rename columns for simplicity
                                    B1 = B1_median,
                                    B2 = B2_median,
@@ -214,6 +216,8 @@ library(PBSmapping)
     B1 > 0 & B2 > 0 & B3 > 0 & B4 > 0 & B5 > 0 & B7 > 0][
       ,':='( 
         # add new columns with band ratios
+        ##### Removi as colunas snow_ice_qa_3km e cloud_qa_3km para funcionar. Temos que verificar se vamos 
+        #### precisar dessas colunas depois
         B2.B1 = B2/B1,
         B3.B1 = B3/B1,
         B4.B1 = B4/B1,
@@ -236,9 +240,7 @@ library(PBSmapping)
           # select only columns of interest
           ,.(station_nm, sensor, site_no, Latitude,Longitude,sample_dt, num_pix, landsat_dt,
              B1,B2,B3,B4,B5,B6,B7,B2.B1,B2.B1,B3.B1,B4.B1,B5.B1,B7.B1,B3.B2,B4.B2,B5.B2,
-             B7.B2,B4.B3,B5.B3,B7.B3,B5.B4,B7.B4,B7.B5,nd52,cloud_cover,cloud_qa_count,cloud_qa_3km,snow_ice_qa_count, snow_ice_qa_3km,
+               B7.B2,B4.B3,B5.B3,B7.B3,B5.B4,B7.B4,B7.B5,nd52,cloud_cover,cloud_qa_count,snow_ice_qa_count, 
              solar_az, solar_zen,sr_atmos_opacity_median,sr_cloud_qa_median
           )]
-
-
   
