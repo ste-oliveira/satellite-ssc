@@ -1,21 +1,144 @@
 #### LIBRARY IMPORTS ####
-install.packages('data_table')
+#install.packages("wrapr")
+library(wrapr)
+
+#install.packages("base")
+library(base)
+
+#install.packages("mod")
+library(mod)
+
+#install.packages("dataRetrieval")
+library(dataRetrieval)
+
+#install.packages("tidyhydat")
+library(tidyhydat)
+
+#install.packages("readr")
+library(readr)
+
+#install.packages("readxl")
+library(readxl)
+
+#install.packages("ggplot2")
+library(ggplot2)
+
+#install.packages("ggthemes")
+library(ggthemes)
+
+#install.packages("RColorBrewer")
+library(RColorBrewer)
+
+#install.packages("ggpubr")
+library(ggpubr)
+
+#install.packages("gstat")
+library(gstat)
+
+#install.packages("ggspatial")
+library(ggspatial)
+
+#install.packages("svglite")
+library(svglite)
+
+#install.packages("plotly")
+library(plotly)
+
+#install.packages("data.table")
 library(data.table)
 
-install.packages('sp')
+#install.packages("dplyr")
+library(dplyr) # hoping to move away from dplyr
+
+#install.packages("tidyverse")
+library(tidyverse)
+
+#install.packages("tidyquant")
+library(tidyquant)
+
+#install.packages("tidyr")
+library(tidyr)
+
+#install.packages("broom")
+library(broom)
+
+#install.packages("modelr")
+library(modelr)
+
+#install.packages("scales")
+library(scales)
+
+#install.packages("kdensity")
+library(kdensity)
+
+#install.packages("NbClust")
+library(NbClust)
+
+#install.packages("zoo")
+library(zoo)
+
+#install.packages("segmented")
+library(segmented)
+
+#install.packages("lubridate")
+library(lubridate)
+
+#install.packages("reshape2")
+library(reshape2)
+
+#install.packages("matrixStats")
+library(matrixStats)
+
+#install.packages("smoother")
+library(smoother)
+
+#install.packages("glmnet")
+library(glmnet)
+
+#install.packages("boot")
+library(boot)
+
+#install.packages("kernelboot")
+library(kernelboot)
+
+#install.packages("np")
+library(np)
+
+#install.packages("automap")
+library(automap)
+
+#install.packages("sp")
 library(sp)
 
-install.packages('ggplot2')
-library(ggplot2)
+#install.packages("USAboundaries")
+library(USAboundaries)
+
+#install.packages("sf")
+library(sf)
+
+#install.packages("rgeos")
+library(rgeos)
+
+#install.packages("raster")
+library(raster)
+
+#install.packages("rgdal")
+library(rgdal)
+
+#install.packages("maptools")
+library(maptools)
+
+#install.packages("PBSmapping")
+library(PBSmapping)
 
 #### SET DIRECTORIES ####
   # Set root directory
   wd_root <- "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc"
   
   # Imports folder (store all import files here)
-  wd_imports <- paste0(wd_root,"C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc")
+  wd_imports <- paste0(wd_root,"C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/imports/")
   # Exports folder (save all figures, tables here)
-  wd_exports <- paste0(wd_root,"C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports")
+  wd_exports <- paste0(wd_root,"C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports/")
   
   wd_figures <- paste0(wd_exports, "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports/ssc-figures")
   wd_exports_gc <- paste0(wd_exports,"C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/exports/ssc-gc-plots")
@@ -28,10 +151,13 @@ library(ggplot2)
   export_folder_paths <- c(wd_exports, wd_figures, wd_exports_gc,wd_station_standalone, 
                            wd_standalone_models, wd_standalone_figures, wd_autocorrelation)
  
-  
   #### INITIALIZE MAP DATA FOR TAQUARI ####
-
-  # taquari <- taquari[taquari$state_abbr != "AK" & taquari$state_abbr != "HI" & taquari$state_abbr != "PR",]
+  setwd("C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-scc/imports/shape/")
+  
+  # get states shapefile for clipping/display
+  us_states <-  us_boundaries(map_date = NULL, type = c("state"), resolution = c("low"), states = NULL)
+  
+  #taquari <- taquari[taquari$state_abbr != "AK" & taquari$state_abbr != "HI" & taquari$state_abbr != "PR",]
   
   # convert shapefile to Spatial class
   taquari <- as(taquari, 'Spatial')
@@ -42,8 +168,28 @@ library(ggplot2)
   # set projection for states shapefile
   projection <- CRS("+proj=longlat +datum=WGS84 +no_defs")
   
+  # import taquari provinces
+  taquari_prov <- read_sf(dsn = "taquari", layer = "estacoes_sed_gee_taquari.shp")
+  # plot(taquari_prov)
+  taquari_geom <- st_geometry(taquari_prov)
+  # attributes(taquari_geom)
   
-  #### --- ####
+  # do conversions and projections for canadian provinces to match us states
+  canada_prov <- as(canada_prov, 'Spatial')
+  
+  canada_prov <- spTransform(canada_prov, projection)
+  # coordinates(canada_prov) <- ~long+lat
+  proj4string(canada_prov) <- proj4string(us_states)
+  
+  names(canada_prov) <- c('name','frenchName') # rename columns labeling canadian provinces
+  canada_prov <- canada_prov[,c('name')] # only select column with province name
+  us_states <- us_states[,c('name')] # only select column with province name
+  us_states <- rbind(us_states,canada_prov) # combine canadian and us shapefiles
+  
+  # fortify state shapefile
+  us_ca <- fortify(us_states)
+  
+      #### --- ####
   #### IMPORT AND CLEAN -- LANDSAT DATA ####
   set.seed(1)
   # raw continuous data for regression
@@ -94,42 +240,3 @@ library(ggplot2)
              solar_az, solar_zen,sr_atmos_opacity_median,sr_cloud_qa_median
           )]
 
-  ## Identify sites with too few Landsat measurements to be reliable
-  
-  # Calculate number of satellite samples, per site
-  n_sat_samples <- ls_raw_1[,.(N_samples = .N), 
-                            by = .(site_no, Latitude, Longitude)]
- 
-  stns_too_narrow <- fread('ssc_stns_too_narrow.dat')
-  
-  # Select sites with > 100 satellite measurements, remove sites that are too narrow
-  site_no_n100 <- n_sat_samples[N_samples >= 100 &
-                                  !(site_no %chin% stns_too_narrow$station_nm), 
-                                site_no]   
-
-  # Filter landsat data by sites with > 100 satellite measurements & wide enough river
-  ls_raw_1 <- ls_raw_1[site_no %chin% site_no_n100]
-
-  n_sat_samples_n100 <- n_sat_samples[site_no %chin% site_no_n100]
-  
-  # Plot number of satellite samples per site as a histogram
-  n_sat_samples_histogram <- 
-    ggplot(n_sat_samples_n100, aes(x = N_samples)) + 
-    geom_histogram(color = 'black', lwd = 0.25, binwidth = 100) +
-    geom_vline(data = n_sat_samples_n100[,.(N_samples = mean(N_samples))], aes(xintercept = N_samples),
-               color = 'orange', lty = 'dashed') + 
-    geom_text(data = n_sat_samples_n100[,.(N_samples = mean(N_samples))], 
-              aes(label = paste0('mean = ',round(N_samples), ' samples'), x = N_samples + 40, y = 120),
-              hjust = 0, size = 3) +
-    season_facet + 
-    scale_y_continuous(expand = expand_scale(mult = c(0, 0.1))) +
-    labs(
-      x = 'Number of cloud-free satellite samples/site',
-      y = 'Number of sites'
-    )
-  # Save satellite images/site histogram
-  ggsave(n_sat_samples_histogram, filename = paste0(wd_figures,'n_sat_samples_histogram.pdf'), width = 4, height = 4, useDingbats = F)
-
-  #help
-  ?na.omit
-  
