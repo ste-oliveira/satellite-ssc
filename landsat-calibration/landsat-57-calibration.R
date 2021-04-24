@@ -1,4 +1,5 @@
 #### LIBRARY IMPORTS ####
+
 #install.packages("wrapr")
 library(wrapr)
 
@@ -48,7 +49,7 @@ library(plotly)
 library(data.table)
 
 #install.packages("dplyr")
-library(dplyr) # hoping to move away from dplyr
+library(dplyr) #hoping to move away from dplyr
 
 #install.packages("tidyverse")
 library(tidyverse)
@@ -107,11 +108,13 @@ library(np)
 #install.packages("automap")
 library(automap)
 
-#install.packages("sp")
+#detach("package:sp", unload = TRUE)
+#install.packages("sp", dep = TRUE)
+require (sp)
 library(sp)
 
 #install.packages("USAboundaries")
-#library(USAboundaries)
+library(USAboundaries)
 
 #install.packages("sf")
 library(sf)
@@ -133,19 +136,20 @@ library(PBSmapping)
 
 #### SET DIRECTORIES ####
   # Set root directory
-  wd_root <- "../"
+  wd_root <- "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-ssc/"
   
   # Imports folder (store all import files here)
   wd_imports <- paste0(wd_root,"/imports/")
+  
   # Exports folder (save all figures, tables here)
   wd_exports <- paste0(wd_root,"/exports/")
   
-  wd_figures <- paste0(wd_exports, "/exports/ssc-figures")
-  wd_exports_gc <- paste0(wd_exports,"/exports/ssc-gc-plots")
-  wd_station_standalone <- paste0(wd_exports, "/exports/ssc-station-vs-standalone-models")
-  wd_standalone_models <- paste0(wd_exports, "/exports/ssc-standalone-models")
-  wd_standalone_figures <- paste0(wd_standalone_models, "/exports/ssc-standalone-figures")
-  wd_autocorrelation <- paste0(wd_exports, "/exports/ssc-autocorrelation")
+  wd_figures <- paste0(wd_exports, "/ssc-figures")
+  wd_exports_gc <- paste0(wd_exports,"/ssc-gc-plots")
+  wd_station_standalone <- paste0(wd_exports, "/ssc-station-vs-standalone-models")
+  wd_standalone_models <- paste0(wd_exports, "/ssc-standalone-models")
+  wd_standalone_figures <- paste0(wd_standalone_models, "/ssc-standalone-figures")
+  wd_autocorrelation <- paste0(wd_exports, "/ssc-autocorrelation")
 
   # Create folders within root directory to organize outputs if those folders do not exist
   export_folder_paths <- c(wd_exports, wd_figures, wd_exports_gc,wd_station_standalone, 
@@ -153,13 +157,13 @@ library(PBSmapping)
   
  
   #### INITIALIZE MAP DATA FOR TAQUARI ####
-  setwd(wd_imports)
+  setwd (wd_imports)
   
   # set projection for states shapefile
   projection <- CRS("+proj=longlat +datum=WGS84 +no_defs")
   
   # import taquari provinces
-  taquari <- read_sf(dsn = "../imports/shape/estacoes_sed_gee_taquari.shp", layer = "estacoes_sed_gee_taquari")
+  taquari <- read_sf(dsn = "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-ssc/imports/shape/estacoes_sed_gee_taquari.shp", layer = "estacoes_sed_gee_taquari")
   taquari_geom <- st_geometry(taquari)
   # attributes(taquari_geom)
 
@@ -174,12 +178,12 @@ library(PBSmapping)
   #plot(taquari)
 
   
-  #####Não precisamos igualar a projeção porque estamos usando apenas uma camada
+  #####N?o precisamos igualar a proje??o porque estamos usando apenas uma camada
   # coordinates(canada_prov) <- ~long+lat
   #proj4string(canada_prov) <- proj4string(us_states)
   
   
-  ######Não precisamos deste bloco pq ele só está renomeando a 
+  ######N?o precisamos deste bloco pq ele s? est? renomeando a 
   ######coluna das camadas, selecionando as que tem nome e juntando 
   ######os pontos do eua com canada.
   #names(canada_prov) <- c('name','frenchName') # rename columns labeling canadian provinces
@@ -194,10 +198,10 @@ library(PBSmapping)
   # raw continuous data for regression
   
   # Import landsat spectral data from each site of interest
-  ls_raw <- fread("../imports/gee/table1_taquari.csv") 
+  ls_raw <- fread("C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-ssc/imports/gee/table1_taquari.csv") 
   
   ###### Coloque para a coluna site_no como taquari, mas acho que vamos precisar colocar
-  ###### o nome da estação na hora de exportar os dados do GEE. (não tenho certeza disso ainda)
+  ###### o nome da esta??o na hora de exportar os dados do GEE. (n?o tenho certeza disso ainda)
   #ls_raw_1 <- na.omit(ls_raw[,':='(site_no = "ifelse(name == "",as.character(site_no),gsub('usgs|qw|dv',"",name))",
   ls_raw_1 <- na.omit(ls_raw[,':='(site_no = "Taquari",
                                    # Rename columns for simplicity
@@ -244,3 +248,110 @@ library(PBSmapping)
              solar_az, solar_zen,sr_atmos_opacity_median,sr_cloud_qa_median
           )]
   
+  ## Identify sites with too few Landsat measurements to be reliable
+  
+  # Calculate number of satellite samples, per site
+  n_sat_samples <- ls_raw_1[,.(N_samples = .N), 
+                            by = .(site_no, Latitude, Longitude)]
+  
+  #retirei#stns_too_narrow <- fread('ssc_stns_too_narrow.dat')# retirei
+  #retirei# Select sites with > 100 satellite measurements, remove sites that are too narrow ##
+  #retirei#site_no_n100 <- n_sat_samples[N_samples >= 100 & 
+  #retirei                                !(site_no %chin% stns_too_narrow$station_nm), 
+  #retirei                              site_no] 
+  #retirei
+  #retirei## Filter landsat data by sites with > 100 satellite measurements & wide enough river ##
+  #retirei#ls_raw_1 <- ls_raw_1[site_no %chin% site_no_n100]
+  #retirei#n_sat_samples_n100 <- n_sat_samples[site_no %chin% site_no_n100]
+ 
+  
+  
+  # Plot number of satellite samples per site as a histogram
+  n_sat_samples_histogram <- 
+    ggplot(n_sat_samples, aes(x = N_samples)) + 
+    geom_histogram(color = 'black', lwd = 0.25, binwidth = 100) +
+    geom_vline(data = n_sat_samples[,.(N_samples = mean(N_samples))], aes(xintercept = N_samples),
+               color = 'orange', lty = 'dashed') + 
+    geom_text(data = n_sat_samples[,.(N_samples = mean(N_samples))], 
+              aes(label = paste0('mean = ',round(N_samples), ' samples'), x = N_samples + 40, y = 120),
+              hjust = 0, size = 3) +
+  
+    scale_y_continuous(expand = expand_scale(mult = c(0, 0.1))) +
+    labs(
+      x = 'Number of cloud-free satellite samples/site',
+      y = 'Number of sites'
+    )
+  
+   # Save satellite images/site histogram
+   ggsave(n_sat_samples_histogram, filename = paste0(wd_figures,'n_sat_samples_histogram.pdf'), width = 4, height = 4, useDingbats = F)
+  
+   
+   
+   #### IMPORT AND CLEAN -- IN SITU DATA ####
+   
+   # IMPORTAR DADOS IN SITU
+   taquari_insitu_raw <- fread('taquari_insitu.csv')[,'site_no' := as.character(site_no)]
+   taquari_insitu_site_nos <- unique(taquari_insitu_raw[!is.na(site_no),site_no])
+  
+    # Import site info, add and rename columns
+   taquari_sts <- fread('taquari_insitu.csv',
+                      colClasses =list(character = 'site_no'))[
+                        , .(site_no = as.character(site_no), 
+                            river_nm = paste0(`River Name`, ' at ', `Fluviometric Station`), 
+                            drainage_area_km2 = as.numeric(`Drainage Area (KmÃ‚Â² )`)*1000, 
+                            Latitude, Longitude)][site_no %chin% sa_insitu_site_nos]
+   
+   setkey(taquari_insitu_raw,site_no)
+   setkey(taquari_sts,site_no)
+   
+   # Join raw in situ data with site info, add and rename columns
+   taquari_insitu_raw_1 <- taquari_insitu_raw[hybam_sts][,':='(agency_cd = 'HYBAM',
+                                                     site_no = as.character(site_no),                                                  
+                                                     sample_depth_m = 'Surface', 
+                                                     sample_datetime = ymd_hms(Date),
+                                                     sample_dt = date(ymd_hms(Date)),
+                                                     # sample_tm = as.character(hms(ymd_hms(Date))),
+                                                     Q_cms = NA,
+                                                     data_type = 'qw',
+                                                     POC_mgL = NA,
+                                                     p63 = NA,
+                                                     width_m = NA,
+                                                     alt_m = NA,
+                                                     begin_date = min(date(ymd_hms(Date))),
+                                                     end_date = max(date(ymd_hms(Date)))
+   )][!is.na(SSC_mgL),.(agency_cd,station_nm, site_no, sample_dt, 
+                        SSC_mgL, POC_mgL, p63, sample_method, sampler, sample_depth_m, width_m,
+                        Latitude, Longitude, drainage_area_km2, alt_m,
+                        data_type,begin_date,end_date)]
+   
+   # Adjust surface measurements to depth integrated for deep SA rivers
+   # Add Depth integrated, calculated as the sample method and sample depth
+   taquari_insitu_raw_2 <- merge(taquari_insitu_raw_1,hybam_depth_integration, 
+                            all = T, by = 'station_nm')[!is.na(Slope),
+                                                        ':='(SSC_mgL = SSC_mgL * Slope + Intercept,
+                                                             sample_method = 'Depth integrated, calculated',
+                                                             sample_depth_m = 'Depth integrated, calculated')]
+   
+   
+   #### --- ####
+   #### FINAL DATA PREPARATION: REMOVE SITES WITH INSUFFICIENT/UNSUITABLE DATA ####
+   ## Bind together in situ data from different agencies
+   
+    
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
