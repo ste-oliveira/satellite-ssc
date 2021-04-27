@@ -290,23 +290,23 @@ library(PBSmapping)
    #### IMPORT AND CLEAN -- IN SITU DATA ####
    
    # IMPORTAR DADOS IN SITU
-   taquari_insitu_raw <- fread('taquari_insitu.csv')[,'site_no' := as.character(site_no)]
-   taquari_insitu_site_nos <- unique(taquari_insitu_raw[!is.na(site_no),site_no])
+   taquari_insitu_raw <- fread('taquari_insitu.csv') [,'EstacaoCodigo' := as.character(EstacaoCodigo)]
+   taquari_insitu_site_nos <- unique(taquari_insitu_raw[!is.na(EstacaoCodigo),EstacaoCodigo])
   
     # Import site info, add and rename columns
    taquari_sts <- fread('taquari_insitu.csv',
-                      colClasses =list(character = 'site_no'))[
-                        , .(site_no = as.character(site_no), 
-                            river_nm = paste0(`River Name`, ' at ', `Fluviometric Station`), 
-                            drainage_area_km2 = as.numeric(`Drainage Area (KmÂ² )`)*1000, 
-                            Latitude, Longitude)][site_no %chin% sa_insitu_site_nos]
+                      colClasses =list(character = 'EstacaoCodigo'))[
+                        , .(EstacaoCodigo = as.character(EstacaoCodigo), 
+                            river_nm = paste0("River Name", " at ", "Fluviometric Station"), 
+                            drainage_area_km2 = as.numeric("Drainage Area (KmÂ² )")*1000, 
+                            Latitude, Longitude)][EstacaoCodigo %chin% taquari_insitu_site_nos]
    
-   setkey(taquari_insitu_raw,site_no)
-   setkey(taquari_sts,site_no)
+   setkey(taquari_insitu_raw,EstacaoCodigo)
+   setkey(taquari_sts,EstacaoCodigo)
    
    # Join raw in situ data with site info, add and rename columns
-   taquari_insitu_raw_1 <- taquari_insitu_raw[hybam_sts][,':='(agency_cd = 'HYBAM',
-                                                     site_no = as.character(site_no),                                                  
+   taquari_insitu_raw_1 <- taquari_insitu_raw[taquari_sts][,':='(agency_cd = 'ANA',
+                                                               EstacaoCodigo = as.character(EstacaoCodigo),                                                  
                                                      sample_depth_m = 'Surface', 
                                                      sample_datetime = ymd_hms(Date),
                                                      sample_dt = date(ymd_hms(Date)),
@@ -324,24 +324,7 @@ library(PBSmapping)
                         Latitude, Longitude, drainage_area_km2, alt_m,
                         data_type,begin_date,end_date)]
    
-   # Adjust surface measurements to depth integrated for deep SA rivers
-   # Add Depth integrated, calculated as the sample method and sample depth
-   taquari_insitu_raw_2 <- merge(taquari_insitu_raw_1,hybam_depth_integration, 
-                            all = T, by = 'station_nm')[!is.na(Slope),
-                                                        ':='(SSC_mgL = SSC_mgL * Slope + Intercept,
-                                                             sample_method = 'Depth integrated, calculated',
-                                                             sample_depth_m = 'Depth integrated, calculated')]
-   
-   
-   #### --- ####
-   #### FINAL DATA PREPARATION: REMOVE SITES WITH INSUFFICIENT/UNSUITABLE DATA ####
-   ## Bind together in situ data from different agencies
-   
-    
-   
-   
-   
-   
+  
    
    
    
