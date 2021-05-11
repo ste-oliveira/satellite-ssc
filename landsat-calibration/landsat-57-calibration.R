@@ -136,7 +136,7 @@ library(PBSmapping)
 
 #### SET DIRECTORIES ####
 # Set root directory
-wd_root <- "../"
+wd_root <- "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-ssc/"
 
 # Imports folder (store all import files here)
 wd_imports <- paste0(wd_root,"/imports/")
