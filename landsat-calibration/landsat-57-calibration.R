@@ -136,7 +136,7 @@ library(PBSmapping)
 
 #### SET DIRECTORIES ####
 # Set root directory
-wd_root <- "C:/Users/stefo/Documents/Doutorado/Dados_Hidro/GIT/satellite-ssc/"
+wd_root <- "../"
 
 # Imports folder (store all import files here)
 wd_imports <- paste0(wd_root,"/imports/")
@@ -292,8 +292,8 @@ ggsave(n_sat_samples_histogram, filename = paste0(wd_figures,'n_sat_samples_hist
 #### IMPORT AND CLEAN -- IN SITU DATA ####
 
 # IMPORTAR DADOS IN SITU
-taquari_insitu_raw <- fread('taquari_insitu.csv') [,'EstacaoCodigo' := as.character(EstacaoCodigo)]
-taquari_insitu_site_nos <- unique(taquari_insitu_raw[!is.na(EstacaoCodigo),EstacaoCodigo])
+taquari_insitu_raw <- fread('taquari_insitu.csv') [, 'station_nm' := as.character(station_nm)]
+taquari_insitu_site_nos <- unique(taquari_insitu_raw[!is.na(station_nm),station_nm])
 
 ##### PARTE REMOVIDA - A PLANILHA DOS DADOS LOCAIS TEM AS INFORMACOES DAS ESTACOES ######
 # Import site info, add and rename columns
@@ -333,7 +333,7 @@ taquari_insitu_site_nos <- unique(taquari_insitu_raw[!is.na(EstacaoCodigo),Estac
 
 
 
-##### PENDENTE - A PLANILHA DOS DADOS LOCAIS TEM AS INFORMACOES DAS ESTACOES ######
+##### PENDENTE - PODEMOS COLOCAR OU NAO OS DADOS DE PROFUNDIDADE ######
 # Import depth integration calculations - Importar dados de profundidade da ANA 
 #hybam_depth_integration <- fread('amazon-depth-integration.csv')
 #setkey(hybam_depth_integration,station_nm)
@@ -348,53 +348,95 @@ taquari_insitu_site_nos <- unique(taquari_insitu_raw[!is.na(EstacaoCodigo),Estac
 
 
 
-#### --- ####
-#### FINAL DATA PREPARATION: REMOVE SITES WITH INSUFFICIENT/UNSUITABLE DATA #### vou pular essa parte por enquanto
+##### FINAL DATA PREPARATION: REMOVE SITES WITH INSUFFICIENT/UNSUITABLE DATA ##### 
 
-## Bind together in situ data from different agencies
-all_acy_insitu_raw <- rbind(taquari_insitu_raw)[
-  is.na(sample_method), sample_method  := 'Unknown'][,
-                                                     match_name := ifelse(agency_cd %chin% c('ANA'),
-                                                                          station_nm,site_no)]
+## PENDENTE - Bind together in situ data from different agencies
+#all_acy_insitu_raw <- rbind(taquari_insitu_raw)[
+#  is.na(sample_method), sample_method  := 'Unknown'][,
+#                                                     match_name := ifelse(agency_cd %chin% c('ANA'),
+#                                                                          station_nm,site_no)]
 
 #Select usable (>> drainage area threshold, no canyons) sites with sufficient Landsat images
-all_acy_sts <- unique(all_acy_insitu_raw[match_name %chin% site_no_n100,match_name])
-site_no_ls_insitu_n100 <- 
+#all_acy_sts <- unique(all_acy_insitu_raw[match_name %chin% site_no_n100,match_name])
+#site_no_ls_insitu_n100 <- 
   # Remove in situ data at stations with insufficient landsat images
-  all_acy_insitu_raw[match_name %chin% all_acy_sts]
+  #all_acy_insitu_raw[match_name %chin% all_acy_sts]
 
 ## Remove Landsat data from unsuitable sites (insufficient drainage, canyons)
-ls_clean <- ls_raw_1[site_no %chin% all_acy_sts]
+#ls_clean <- ls_raw_1[site_no %chin% all_acy_sts]
 
-#### JOIN LANDSAT AND IN SITU DATA, WITH LAG OF UP TO 10 DAYS, RESTRICT TO < 3 DAYS ####
+##### Calculate daily in situ mean value of continuous variables (SSC_mgL, , POC_mgL, P63, sample_depth_m, width_m) ####
+# Do this by setting every value of those variables to be the mean daily value at that site and date
+# Then remove duplicates by site and date
+
+# all_acy_insitu_daily_mean <- taquari_insitu_raw[, ':='(
+#   SSC_mgL = mean(ConcentracaoMatSuspensao, na.rm = T), 
+#   POC_mgL = mean(POC_mgL, na.rm = T), 
+#   p63 = mean(p63, na.rm = T), 
+#   sample_depth_m = mean(as.numeric(sample_depth_m), na.rm = T),
+#   width_m = mean(Largura, na.rm = T)), 
+#   by = c('sample_dt', 'site_no','data_type', 'sample_method','sampler')]
+# 
+# duplicate_insitu_rows <- which(duplicated(all_acy_insitu_daily_mean[,.(site_no, sample_dt, data_type, sample_method, sampler)]))
+# all_acy_insitu_daily_mean <- all_acy_insitu_daily_mean[-duplicate_insitu_rows]
+# 
+# # Plot sampling method types
+# sample_method_bar_chart <- ggplot(all_acy_insitu_raw[,.(N = .N),by = sample_method], 
+#                                   aes(x = reorder(sample_method,N), y = N)) + 
+#   geom_bar(stat = 'identity') + 
+#   season_facet +
+#   scale_y_log10(labels = fancy_scientific) +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+#   labs(
+#     x = 'Sampling Method',
+#     y = 'N in situ samples'
+#   )
+
+
+#### PENDENTE - JOIN LANDSAT AND IN SITU DATA, WITH LAG OF UP TO 10 DAYS, RESTRICT TO < 3 DAYS ####
 ## Join Landsat data with in situ data, allowing for as much as a 10-day lead/lag
 
 # Join Landsat data with in situ data
 lag_days <- 8
 # taquari_insitu_raw <- setDT(ls_clean)[all_acy_insitu_daily_mean, roll = lag_days][ # uni-directional join
-taquari_insitu_raw_clean <- setDT(taquari_insitu_raw)[, ':='(match_dt_start = Data - lag_days,
-                                                             match_dt_end = Data + lag_days,
-                                                             Data = NULL)][
-                                                               all_acy_insitu_daily_mean[,':='(match_dt = Data)], 
-                                                               on = .(match_name == match_name, match_dt_start <= match_dt, match_dt_end >= match_dt)][ # bi-directional join
-                                                                 !is.na(B1)][ # removes days with in situ SSC but no Landsat image
-                                                                   ,lag_days := as.numeric(difftime(Data,landsat_dt),'days')][ # calculate the lead/lag between in situ and satellite sample
-                                                                     # Remove columns that are duplicated 
-                                                                     ,':='(site_no = i.site_no, i.site_no = NULL, i.Latitude = NULL, i.Longitude = NULL, i.station_nm = NULL)][
-                                                                       # Add Log10 SSC, squared cols, and remove no values, too cold (B6 < 269) values
-                                                                       SSC_mgL > 0,':='(log10_SSC_mgL = log10(SSC_mgL),
-                                                                                        B1.2 = B1^2,
-                                                                                        B2.2 = B1^2,
-                                                                                        B3.2 = B1^2,
-                                                                                        B4.2 = B1^2,
-                                                                                        B5.2 = B1^2,
-                                                                                        B7.2 = B1^2
-                                                                       )][!is.na(log10_SSC_mgL) & B6 > 268] 
-
-
+taquari_insitu_raw_clean <- setDT(ls_raw_1)[, ':='( 
+                                              match_dt_start = Data - lag_days,
+                                              match_dt_end = Data + lag_days)
+                                            ][
+                                              taquari_insitu_raw[,':='(
+                                                match_dt = dmy(sample_date) )
+                                            ], 
+                                              ####falta incluir a estacao
+                                              on = .(match_dt_start <= match_dt, match_dt_end >= match_dt)
+                                            ][ 
+                                              # bi-directional join
+                                              !is.na(B1)
+                                            ][ # removes days with in situ SSC but no Landsat image
+                                              ,lag_days := as.numeric(difftime(sample_date,landsat_dt),'days'
+                                            )][ 
+                                              # calculate the lead/lag between in situ and satellite sample
+                                              # Remove columns that are duplicated 
+                                              ,':='(
+                                                site_no = i.site_no, i.site_no = NULL, i.station_nm = NULL
+                                              )
+                                            ][
+                                              # Add Log10 SSC, squared cols, and remove no values, too cold (B6 < 269) values
+                                              as.double(ConcentracaoMatSuspensao) > 0,
+                                              ':='(
+                                                log10_SSC_mgL = log10(ConcentracaoMatSuspensao),
+                                                B1.2 = B1^2,
+                                                B2.2 = B1^2,
+                                                B3.2 = B1^2,
+                                                B4.2 = B1^2,
+                                                B5.2 = B1^2,
+                                                B7.2 = B1^2
+                                              )
+                                            ][
+                                              !is.na(log10_SSC_mgL) & B6 > 268
+                                            ] 
 # Select minimum lead/lag row
 setkey(taquari_insitu_raw[,abs_lag_days := abs(lag_days)], abs_lag_days)
-taquari_insitu_raw <- taquari_insitu_raw[, .SD[1], .(site_no, Data, data_type, sample_method, sampler)]
+taquari_insitu_raw <- taquari_insitu_raw[, .SD[1], .(site_no, sample_date)]
 
 fwrite(taquari_insitu_raw,paste0(wd_exports,'ls_insitu_match.csv'))
 
@@ -419,3 +461,73 @@ regressors_primary <- c(regressors_no_site, 'B4.B3.B1') # all regressors
 
 
 
+
+
+#### PENDENTE - RUN REGRESSION FOR CLUSTERING WITH 1-7 CLUSTERS -- TAKES ~45 MINS ####
+# https://en.wikipedia.org/wiki/Color_quantization something to check out
+set.seed(1)
+site_band_quantiles_all <- ls_raw_1[
+  # n_insitu_samples_bySite][N_insitu_samples > 12
+  ,.(N_samples = .N,
+     B1 = median(B1),
+     B2 = median(B2),
+     B3 = median(B3),
+     B4 = median(B4),
+     # B5 = median(B5),
+     # B7 = median(B7),
+     B2.B1 = median(B2.B1),
+     B3.B1 = median(B3.B1),
+     B4.B1 = median(B4.B1),
+     B3.B2 = median(B3.B2),
+     B4.B2 = median(B4.B2),
+     B4.B3 = median(B4.B3),
+     B4.B3.B1 = median(B4.B3/B1)), 
+  by = .(station_nm,site_no)]
+
+vis_nir_bands <- c('B1','B2','B3','B4','B2.B1','B3.B1','B4.B1','B3.B2','B4.B2','B4.B3','B4.B3.B1')
+
+site_band_scaling_all <- scale(site_band_quantiles_all[,..vis_nir_bands])
+cluster_var_combinations <- Map(as.data.frame, sapply(seq_along(vis_nir_bands), function(k) t(combn(vis_nir_bands,k))))
+
+for(i in 4:length(vis_nir_bands)){
+  cluster_var_k_sel <- cluster_var_combinations[[i]]
+  for(k in 1:nrow(cluster_var_k_sel)){
+    print(paste0(i, " ", k))
+    cluster_var_sel <- c(as.matrix(cluster_var_k_sel[k,]))
+    
+    cluster_var_label <- paste(cluster_var_sel, collapse = "_")
+    
+    nbclust <- NbClust(site_band_scaling_all[,cluster_var_sel], min.nc=4, max.nc=10, index="ccc", method="kmeans")
+    
+    # ccc_result <- data.table(cbind(cluster_var_label, i, c(4:10), NbClust(site_band_scaling_all[,..cluster_var_sel],
+    #                                                                       min.nc=4, max.nc=10, index="ccc", method="kmeans")$All.index))
+    # 
+    # colnames(ccc_result) <- c('variables','nvars','nclusters','ccc')
+    # if(k == 1 & i == 4){
+    #   ccc_master <- ccc_result
+    # }else{
+    #   ccc_master <- rbind(ccc_master, ccc_result)
+    # }
+    # if(k%%100 == 0){
+    #   print(ccc_result)
+    # }
+  }
+}
+
+ccc_analysis <- ccc_master[,':='(nvars = as.numeric(nvars),
+                                 nclusters = as.numeric(nclusters),
+                                 ccc = as.numeric(ccc))]
+
+ccc_best <- ccc_analysis[nclusters > 5 & nvars < 6][, .(mean_ccc = mean(ccc, na.rm = T)), by = variables][order(-mean_ccc)]
+
+ccc_plot <- ggplot(ccc_analysis, aes(x = factor(nclusters), y = ccc, color = factor(nvars))) + 
+  geom_boxplot() +
+  # geom_point() + 
+  # scale_color_fivethirtyeight() +
+  season_facet + 
+  theme(legend.position = 'right') + 
+  labs(
+    x = 'Number of clusters',
+    y = 'Cubic clustering criterion',
+    color = 'Number of variables'
+  )
