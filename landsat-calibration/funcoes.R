@@ -23,6 +23,7 @@ getModels_lasso <- function(data, regressors){
                                          res_cl = NA, pred_st = NA, res_st = NA,
                                          ssc_subset = cluster_sel
                                     )][!is.na(ssc_subset)], cols = c('log10_SSC_mgL',regressors))
+     
      # clusters
      subsets <- unique(lm_data$ssc_subset)
      
@@ -39,8 +40,11 @@ getModels_lasso <- function(data, regressors){
           glm_y <- as.matrix(lm_data_hold[,log10_SSC_mgL])
           glm_x <- as.matrix(lm_data_hold[,..regressors_sel])
           
-          ssc_lm <- cv.glmnet(x = glm_x, y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = 10)
+          #Renan - Devemos escolher o k apropriado para nosso dataset. Por enquanto utilizaremos o método leave-one-out
+          leave_one_out = nrow(lm_data_hold)
+          ssc_lm <- cv.glmnet(x = glm_x, y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = leave_one_out)
           cv.opt <- coef(ssc_lm, s = "lambda.1se")
+          
           coef_ex <- cbind(rownames(cv.opt),as.numeric(cv.opt))
           colnames(coef_ex) <- c('variable', 'value')
           
@@ -55,56 +59,57 @@ getModels_lasso <- function(data, regressors){
           # lm_data$res_cl[which(lm_data$ssc_subset == i)] <- resid(ssc_lm)
      }
      
-     lm_data$ssc_subset <- lm_data$cluster_sel # sites
-     lm_data$site_code <- lm_data$site_no
-     subsets <- unique(lm_data$ssc_subset)
-     for(i in subsets){ # for individual cluster models
-          
-          regressors_sel <- regressors
-          lm_data_lm <- subset(lm_data, ssc_subset == i) # only chooses sites within cluster
-          # lm_data_hold <- lm_data_lm[-which(lm_data_lm$site_no %in% holdout_sts),] # for eliminating certain sites
-          # lm_data_hold <- lm_data_lm[which(lm_data_lm$holdout25 == 'in'),]
-          lm_data_hold <- lm_data_lm # need to make sure all sites are included in lm_data_hold in order to use holdout
-          
-          glm_y <- as.matrix(lm_data_hold[,log10_SSC_mgL])
-          glm_x <- model.matrix( ~ ., lm_data_hold[,..regressors])
-          
-          ssc_lm <- cv.glmnet(x = glm_x,y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = 10)
-          cv.opt <- coef(ssc_lm, s = "lambda.1se")
-          coef_ex <- cbind(rownames(cv.opt),as.numeric(cv.opt))
-          colnames(coef_ex) <- c('variable', 'value')
-          
-          write.table(coef_ex, sep = ",", file = paste0(wd_exports, 'cluster_ncl',n_clusters,'_', i,'site_lasso_fit_coeff.csv'), row.names = F)
-          
-          site_funs[[i]] <- ssc_lm
-          glm_x <- NA
-          lm_data_hold <- NA
-          
-          glm_x_new <- model.matrix( ~ ., lm_data_lm[,..regressors])
-          glm_pred <- predict(ssc_lm, newx = glm_x_new, s = "lambda.1se")
-          lm_data$pred_st[which(lm_data$ssc_subset == i)] <- glm_pred
-          # lm_data$res_cl[which(lm_data$ssc_subset == i)] <- resid(ssc_lm)
-     }
-     lm_data$ssc_subset <- 1
-     subsets <- unique(lm_data$ssc_subset) # global - only one value for subset
-     for(i in subsets){ # for individual models
-          regressors_sel <- regressors[-which(regressors == 'site_no')]
-          lm_data_lm <- lm_data[ssc_subset == i] # only chooses sites within cluster
-          # lm_data_hold <- lm_data_lm[-which(lm_data_lm$site_no %in% holdout_sts),] # for eliminating certain sites
-          lm_data_hold <- lm_data[which(lm_data$holdout25 == 'in'),]
-          glm_y <- as.matrix(lm_data_hold[,log10_SSC_mgL])
-          glm_x <- as.matrix(lm_data_hold[,..regressors_sel])
-          
-          ssc_lm <- cv.glmnet(x = glm_x,y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = 10)
-          cv.opt <- coef(ssc_lm, s = "lambda.1se")
-          coef_ex <- cbind(rownames(cv.opt),as.numeric(cv.opt))
-          colnames(coef_ex) <- c('variable', 'value')
-          
-          write.table(coef_ex, sep = ",", file = paste0(wd_exports,'global_ncl',n_clusters,'_', i, i,'_lasso_fit_coeff.csv'), row.names = F)
-          
-          glm_pred <- predict(ssc_lm, newx = as.matrix(lm_data_lm[,..regressors_sel]), s = "lambda.1se")
-          lm_data$pred_gl[which(lm_data$ssc_subset == i)] <- glm_pred
-     }
+     # Renan - Manter apenas a primeira abordagem para o congresso
+     # lm_data$ssc_subset <- lm_data$cluster_sel # sites
+     # lm_data$site_code <- lm_data$site_no
+     # subsets <- unique(lm_data$ssc_subset)
+     # for(i in subsets){ # for individual cluster models
+     #      
+     #      regressors_sel <- regressors
+     #      lm_data_lm <- subset(lm_data, ssc_subset == i) # only chooses sites within cluster
+     #      # lm_data_hold <- lm_data_lm[-which(lm_data_lm$site_no %in% holdout_sts),] # for eliminating certain sites
+     #      # lm_data_hold <- lm_data_lm[which(lm_data_lm$holdout25 == 'in'),]
+     #      lm_data_hold <- lm_data_lm # need to make sure all sites are included in lm_data_hold in order to use holdout
+     #      
+     #      glm_y <- as.matrix(lm_data_hold[,log10_SSC_mgL])
+     #      glm_x <- model.matrix( ~ ., lm_data_hold[,..regressors])
+     #      
+     #      ssc_lm <- cv.glmnet(x = glm_x,y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = 10)
+     #      cv.opt <- coef(ssc_lm, s = "lambda.1se")
+     #      coef_ex <- cbind(rownames(cv.opt),as.numeric(cv.opt))
+     #      colnames(coef_ex) <- c('variable', 'value')
+     #      
+     #      write.table(coef_ex, sep = ",", file = paste0(wd_exports, 'cluster_ncl',n_clusters,'_', i,'site_lasso_fit_coeff.csv'), row.names = F)
+     #      
+     #      site_funs[[i]] <- ssc_lm
+     #      glm_x <- NA
+     #      lm_data_hold <- NA
+     #      
+     #      glm_x_new <- model.matrix( ~ ., lm_data_lm[,..regressors])
+     #      glm_pred <- predict(ssc_lm, newx = glm_x_new, s = "lambda.1se")
+     #      lm_data$pred_st[which(lm_data$ssc_subset == i)] <- glm_pred
+     #      # lm_data$res_cl[which(lm_data$ssc_subset == i)] <- resid(ssc_lm)
+     # }
+     # lm_data$ssc_subset <- 1
+     # subsets <- unique(lm_data$ssc_subset) # global - only one value for subset
+     # for(i in subsets){ # for individual models
+     #      regressors_sel <- regressors[-which(regressors == 'site_no')]
+     #      lm_data_lm <- lm_data[ssc_subset == i] # only chooses sites within cluster
+     #      # lm_data_hold <- lm_data_lm[-which(lm_data_lm$site_no %in% holdout_sts),] # for eliminating certain sites
+     #      lm_data_hold <- lm_data[which(lm_data$holdout25 == 'in'),]
+     #      glm_y <- as.matrix(lm_data_hold[,log10_SSC_mgL])
+     #      glm_x <- as.matrix(lm_data_hold[,..regressors_sel])
+     #      
+     #      ssc_lm <- cv.glmnet(x = glm_x,y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = 10)
+     #      cv.opt <- coef(ssc_lm, s = "lambda.1se")
+     #      coef_ex <- cbind(rownames(cv.opt),as.numeric(cv.opt))
+     #      colnames(coef_ex) <- c('variable', 'value')
+     #      
+     #      write.table(coef_ex, sep = ",", file = paste0(wd_exports,'global_ncl',n_clusters,'_', i, i,'_lasso_fit_coeff.csv'), row.names = F)
+     #      
+     #      glm_pred <- predict(ssc_lm, newx = as.matrix(lm_data_lm[,..regressors_sel]), s = "lambda.1se")
+     #      lm_data$pred_gl[which(lm_data$ssc_subset == i)] <- glm_pred
+     # }
      return(list(lm_data, cluster_funs, site_funs))
 }
 
@@ -225,7 +230,7 @@ getErrorBias <- function(dt, subset_name){
           )
      # SAVE FIGURE
      ggsave(station_bias_cluster_plot, filename = paste0(wd_exports,'station_bias_', subset_name, '.pdf'), 
-            useDingbats = F, width = 5, height = 4)
+            useDingbats = F, width = 10, height = 4)
      
      return(list(cbind(rel_error,median_rel_bias), station_bias_cluster_plot))
 }

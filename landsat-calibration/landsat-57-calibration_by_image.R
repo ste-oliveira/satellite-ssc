@@ -181,26 +181,6 @@ taquari_geom <- st_geometry(taquari)
 taquari <- as(taquari, 'Spatial')
 taquari <- spTransform(taquari, projection)
 
-# fortify state shapefile.
-#taquari <- fortify(taquari)
-
-#####Se quiser visualizar os pontos, descomenta a linha abaixo
-#plot(taquari)
-
-
-#####N?o precisamos igualar a proje??o porque estamos usando apenas uma camada
-# coordinates(canada_prov) <- ~long+lat
-#proj4string(canada_prov) <- proj4string(us_states)
-
-
-######N?o precisamos deste bloco pq ele s? est? renomeando a 
-######coluna das camadas, selecionando as que tem nome e juntando 
-######os pontos do eua com canada.
-#names(canada_prov) <- c('name','frenchName') # rename columns labeling canadian provinces
-#canada_prov <- canada_prov[,c('name')] # only select column with province name
-#us_states <- us_states[,c('name')] # only select column with province name
-#us_states <- rbind(us_states,canada_prov) # combine canadian and us shapefiles
-
 #### IMPORT AND CLEAN -- LANDSAT DATA ####
 set.seed(1)
 # raw continuous data for regression
@@ -211,8 +191,8 @@ ls_raw <- fread("gee/table1_taquari.csv")
 ###### Coloque para a coluna site_no como taquari, mas acho que vamos precisar colocar
 ###### o nome da esta??o na hora de exportar os dados do GEE. (n?o tenho certeza disso ainda)
 ls_raw_1 <- 
-     na.omit(ls_raw[,':='(
-          site_no = as.character(site_no), # Rename columns for simplicity
+     na.omit(ls_raw[,
+        ':='(site_no = as.character(site_no), # Rename columns for simplicity
           station_nm = station_nm,
           B1 = B1_median,
           B2 = B2_median,
@@ -260,148 +240,35 @@ ls_raw_1 <-
 
 # Calculate number of satellite samples, per site
 n_sat_samples <- 
-     ls_raw_1[,.(N_samples = .N), by = .(site_no)]
-
-#retirei#stns_too_narrow <- fread('ssc_stns_too_narrow.dat')# retirei
-#retirei# Select sites with > 100 satellite measurements, remove sites that are too narrow ##
-#retirei#site_no_n100 <- n_sat_samples[N_samples >= 100 & 
-#retirei                                !(site_no %chin% stns_too_narrow$station_nm), 
-#retirei                              site_no] 
-#retirei
-#retirei## Filter landsat data by sites with > 100 satellite measurements & wide enough river ##
-#retirei#ls_raw_1 <- ls_raw_1[site_no %chin% site_no_n100]
-#retirei#n_sat_samples_n100 <- n_sat_samples[site_no %chin% site_no_n100]
+     ls_raw_1[,.(N_samples = .N), by = .(station_nm)]
 
 # Plot number of satellite samples per site as a histogram
+# Renan - Plotar número de amostras por estação
 n_sat_samples_histogram <- 
-     ggplot(n_sat_samples, aes(x = N_samples)) + 
-     geom_histogram(color = 'black', lwd = 0.25, binwidth = 100) +
-     geom_vline(
-          data = n_sat_samples[,.(N_samples = mean(N_samples))], 
-          aes(xintercept = N_samples), color = 'orange', lty = 'dashed') + 
-     geom_text(
-          data = n_sat_samples[,.(N_samples = mean(N_samples))], 
-          aes(label = paste0('mean = ',round(N_samples), ' samples'), x = N_samples + 40, y = 2.5),
-          hjust = 0, size = 3) +
-     
-     scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-     labs(
-          x = 'Number of cloud-free satellite samples/site',
-          y = 'Number of sites'
-     )
-
+        ggplot(n_sat_samples, aes(x = station_nm, y=N_samples)) + 
+        geom_bar(stat="identity", width=0.5, color = 'black') +
+        labs(
+                x = 'Estação',
+                y = 'Número de amostras sem interferências atmosféricas'
+        )
+        
 # Save satellite images/site histogram
-ggsave(n_sat_samples_histogram, filename = paste0(wd_figures,'n_sat_samples_histogram.pdf'), width = 4, height = 4, useDingbats = F)
+ggsave(n_sat_samples_histogram, filename = paste0(wd_figures,'n_sat_samples_histogram.pdf'), width = 10, height = 4, useDingbats = F)
 
 #### IMPORT AND CLEAN -- IN SITU DATA ####
 
 # IMPORTAR DADOS IN SITU
 taquari_insitu_raw <- fread('taquari_insitu.csv') [, 'site_no' := as.character(site_no)]
+
+#Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000
+#taquari_insitu_raw <- taquari_insitu_raw[site_no == 66845000] 
+
 taquari_insitu_site_nos <- unique(taquari_insitu_raw[!is.na(station_nm),station_nm])
 
-##### PARTE REMOVIDA - A PLANILHA DOS DADOS LOCAIS TEM AS INFORMACOES DAS ESTACOES ######
-# Import site info, add and rename columns
-# taquari_sts <- 
-#      fread('taquari_insitu.csv', colClasses =list(character = 'EstacaoCodigo'))[, 
-#           .(EstacaoCodigo = as.character(EstacaoCodigo), 
-#           river_nm = paste0("River Name", " at ", "Fluviometric Station"), 
-#           drainage_area_km2 = as.numeric("Drainage Area (Km )")*1000, 
-#           Latitude, 
-#           Longitude, 
-#      ][
-#           EstacaoCodigo %chin% taquari_insitu_site_nos
-#      ]
-
-# setkey(taquari_insitu_raw,EstacaoCodigo)
-# setkey(taquari_sts,EstacaoCodigo)
-
-# Join raw in situ data with site info, add and rename columns
-#taquari_insitu_raw_1 <- taquari_insitu_raw[taquari_sts][,':='(agency_cd = 'ANA',
-#                                                          EstacaoCodigo = as.character(EstacaoCodigo),                                                  
-#                                                 sample_depth_m = 'Surface', 
-#                                                 sample_datetime = ymd_hms(Date),
-#                                                 sample_dt = date(ymd_hms(Date)),
-#                                                 # sample_tm = as.character(hms(ymd_hms(Date))),
-#                                                 Q_cms = NA,
-#                                                 data_type = 'qw',
-#                                                 POC_mgL = NA,
-#                                                 p63 = NA,
-#                                                 width_m = NA,
-#                                                 alt_m = NA,
-#                                                 begin_date = min(date(ymd_hms(Date))),
-#                                                 end_date = max(date(ymd_hms(Date)))
-#)][!is.na(SSC_mgL),.(agency_cd,station_nm, site_no, Data, 
-#                    SSC_mgL, POC_mgL, p63, sample_method, sampler, sample_depth_m, width_m,
-#                    Latitude, Longitude, drainage_area_km2, alt_m,
-#                    data_type,begin_date,end_date)]
-
-
-
-##### PENDENTE - PODEMOS COLOCAR OU NAO OS DADOS DE PROFUNDIDADE ######
-# Import depth integration calculations - Importar dados de profundidade da ANA 
-#hybam_depth_integration <- fread('amazon-depth-integration.csv')
-#setkey(hybam_depth_integration,station_nm)
-#setkey(sa_insitu_raw_1,station_nm)
-#Adjust surface measurements to depth integrated for deep SA rivers
-#Add Depth integrated, calculated as the sample method and sample depth
-#sa_insitu_raw_2 <- merge(sa_insitu_raw_1,hybam_depth_integration, 
-#                         all = T, by = 'station_nm')[!is.na(Slope),
-#                                                   ':='(SSC_mgL = SSC_mgL * Slope + Intercept,
-#                                                          sample_method = 'Depth integrated, calculated',
-#                                                          sample_depth_m = 'Depth integrated, calculated')]
-
-
-
-##### FINAL DATA PREPARATION: REMOVE SITES WITH INSUFFICIENT/UNSUITABLE DATA ##### 
-
-## PENDENTE - Bind together in situ data from different agencies
-#all_acy_insitu_raw <- rbind(taquari_insitu_raw)[
-#  is.na(sample_method), sample_method  := 'Unknown'][,
-#                                                     match_name := ifelse(agency_cd %chin% c('ANA'),
-#                                                                          station_nm,site_no)]
-
-#Select usable (>> drainage area threshold, no canyons) sites with sufficient Landsat images
-#all_acy_sts <- unique(all_acy_insitu_raw[match_name %chin% site_no_n100,match_name])
-#site_no_ls_insitu_n100 <- 
-# Remove in situ data at stations with insufficient landsat images
-#all_acy_insitu_raw[match_name %chin% all_acy_sts]
-
-## Remove Landsat data from unsuitable sites (insufficient drainage, canyons)
-#ls_clean <- ls_raw_1[site_no %chin% all_acy_sts]
-
-##### Calculate daily in situ mean value of continuous variables (SSC_mgL, , POC_mgL, P63, sample_depth_m, width_m) ####
-# Do this by setting every value of those variables to be the mean daily value at that site and date
-# Then remove duplicates by site and date
-
-# all_acy_insitu_daily_mean <- taquari_insitu_raw[, ':='(
-#   SSC_mgL = mean(ConcentracaoMatSuspensao, na.rm = T), 
-#   POC_mgL = mean(POC_mgL, na.rm = T), 
-#   p63 = mean(p63, na.rm = T), 
-#   sample_depth_m = mean(as.numeric(sample_depth_m), na.rm = T),
-#   width_m = mean(Largura, na.rm = T)), 
-#   by = c('sample_dt', 'site_no','data_type', 'sample_method','sampler')]
-# 
-# duplicate_insitu_rows <- which(duplicated(all_acy_insitu_daily_mean[,.(site_no, sample_dt, data_type, sample_method, sampler)]))
-# all_acy_insitu_daily_mean <- all_acy_insitu_daily_mean[-duplicate_insitu_rows]
-# 
-# # Plot sampling method types
-# sample_method_bar_chart <- ggplot(all_acy_insitu_raw[,.(N = .N),by = sample_method], 
-#                                   aes(x = reorder(sample_method,N), y = N)) + 
-#   geom_bar(stat = 'identity') + 
-#   season_facet +
-#   scale_y_log10(labels = fancy_scientific) +
-#   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-#   labs(
-#     x = 'Sampling Method',
-#     y = 'N in situ samples'
-#   )
-
-
-#### PENDENTE - JOIN LANDSAT AND IN SITU DATA, WITH LAG OF UP TO 10 DAYS, RESTRICT TO < 3 DAYS ####
+#### JOIN LANDSAT AND IN SITU DATA, WITH LAG OF UP TO 10 DAYS, RESTRICT TO < 3 DAYS ####
 ## Join Landsat data with in situ data, allowing for as much as a 10-day lead/lag
-
 # Join Landsat data with in situ data
-lag_days <- 8
+lag_days <- 8 
 # taquari_insitu_raw <- setDT(ls_clean)[all_acy_insitu_daily_mean, roll = lag_days][ # uni-directional join
 ls_insitu_raw <- setDT(ls_raw_1)[, ':='( 
              match_dt_start = landsat_dt - lag_days,
@@ -422,22 +289,15 @@ ls_insitu_raw <- setDT(ls_raw_1)[, ':='(
           ':='(
                log10_SSC_mgL = log10(ConcentracaoMatSuspensao),
                B1.2 = B1^2,
-               B2.2 = B1^2,
-               B3.2 = B1^2,
-               B4.2 = B1^2,
-               B5.2 = B1^2,
-               B7.2 = B1^2
+               B2.2 = B2^2,
+               B3.2 = B3^2,
+               B4.2 = B4^2,
+               B5.2 = B5^2,
+               B7.2 = B7^2
           )
         ][
           !is.na(log10_SSC_mgL) & B6 > 268
         ]
-
-# Select minimum lead/lag row
-setkey(ls_insitu_raw[,abs_lag_days := abs(lag_days)], abs_lag_days)
-ls_insitu_raw <- ls_insitu_raw[, .SD[1], .(site_no, sample_date)]
-
-fwrite(ls_insitu_raw,paste0(wd_exports,'ls_insitu_match.csv'))
-
 
 #### REGRESSION VARIABLES ####
 # Select explanatory variables (regressors) for mulitple regression model
@@ -457,30 +317,27 @@ regressors_all <- c('B1', 'B2', 'B3', 'B4', 'B5', 'B7', # raw bands
 # Select regressors - bands and band ratios
 regressors_primary <- c(regressors_no_site, 'B4.B3.B1') # all regressors
 
+##### ESCOLHER A ESTACAO PARA TESTAR OS MODELOS ####
+
+#Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000, Coxim - 66870000
+ls_insitu_raw <- ls_insitu_raw[site_no == 66845000]
+ls_raw_1 <- ls_raw_1[site_no == 66845000]
+taquari_insitu_raw <- taquari_insitu_raw[site_no == 66845000] 
+
+# Select minimum lead/lag row
+setkey(ls_insitu_raw[,abs_lag_days := abs(lag_days)], abs_lag_days)
+ls_insitu_raw <- ls_insitu_raw[, .SD[1], .(site_no, sample_date)]
+
+fwrite(ls_insitu_raw,paste0(wd_exports,'ls_insitu_match.csv'))
+
+
 #### RUN REGRESSION FOR CLUSTERING WITH 1-7 CLUSTERS -- TAKES ~45 MINS ####
 # https://en.wikipedia.org/wiki/Color_quantization something to check out
 set.seed(1)
-site_band_quantiles_all <- ls_raw_1
-# site_band_quantiles_all <- ls_raw_1[
-#   # n_insitu_samples_bySite][N_insitu_samples > 12
-#   ,.(N_samples = .N,
-#      B1 = as.numeric(median(B1)),
-#      B2 = as.numeric(median(B2)),
-#      B3 = as.numeric(median(B3)),
-#      B4 = as.numeric(median(B4)),
-#      B5 = as.numeric(median(B5)),
-#      B7 = as.numeric(median(B7)),
-#      B2.B1 = median(B2.B1),
-#      B3.B1 = median(B3.B1),
-#      B4.B1 = median(B4.B1),
-#      B3.B2 = median(B3.B2),
-#      B4.B2 = median(B4.B2),
-#      B4.B3 = median(B4.B3),
-#      B4.B3.B1 = median(B4.B3/B1)),
-#   by = .(station_nm,site_no)]
+site_band_quantiles_all <- ls_raw_1[,':='(B4.B3.B1=B4.B3/B1)]
 
 #Renan - Diminui a qtd de variaveis utilizadas
-vis_nir_bands <- c('B1','B2','B3','B4','B2.B1','B3.B1','B4.B1','B3.B2','B4.B2','B4.B3')
+vis_nir_bands <- c('B1','B2','B3','B4','B2.B1','B3.B1','B4.B1','B3.B2','B4.B2','B4.B3', 'B4.B3.B1')
 
 site_band_scaling_all <- scale(site_band_quantiles_all[,..vis_nir_bands])
 cluster_var_combinations <- Map(as.data.frame, sapply(seq_along(vis_nir_bands), function(k) t(combn(vis_nir_bands,k))))
@@ -514,7 +371,8 @@ ccc_analysis <- ccc_master[,':='(nvars = as.numeric(nvars),
                                  ccc = as.numeric(ccc))]
 
 #Renan - Alterei o parametro da melhor configuracao para o kmeans, para retornar algum dados 
-ccc_best <- ccc_analysis[nclusters == 2 & nvars < 4][, .(mean_ccc = mean(ccc, na.rm = T)), by = variables][order(-mean_ccc)]
+#Renan - Desabilitar o clustering para usar somente a estacao coxim
+ccc_best <- ccc_analysis[nclusters == 1 & nvars == 11 ][, .(mean_ccc = mean(ccc, na.rm = T)), by = variables][order(-mean_ccc)]
 
 ccc_plot <- ggplot(ccc_analysis, aes(x = factor(nclusters), y = ccc, color = factor(nvars))) + 
      geom_boxplot() +
@@ -538,12 +396,13 @@ cl_colors <- brewer.pal(name = 'Paired',n=12)
 # Select variables to use for clustering
 # clustering_vars <- c('B1','B4','B2.B1','B3.B1', 'B4.B3.B1')
 # Renan - Selecionar variaveis
-clustering_vars <- unlist(strsplit(as.character(ccc_best[100,'variables']),'_')) # based on optimal cluster vars from ccc analysis
+clustering_vars <- unlist(strsplit(as.character(ccc_best[1,'variables']),'_')) # based on optimal cluster vars from ccc analysis
+
 # clustering_vars <- c('B1','B4','B2.B1','B3.B1')
 
 # Compute number of in situ-landsat pairs per station
 # Renan - Removi o filtro abs_lag_days < 3 para retornar algum registros, esse dado esta estranho no tabela
-n_insitu_samples_bySite <- ls_insitu_raw[!is.na(log10_SSC_mgL) & abs_lag_days < 3,.(N_insitu_samples = .N), by = .(site_no, agency_cd)]
+n_insitu_samples_bySite <- ls_insitu_raw[!is.na(log10_SSC_mgL) & abs_lag_days < 9,.(N_insitu_samples = .N), by = .(site_no)]
 # Compute band median at each site for clustering variables
 # setkey(n_insitu_samples_bySite,site_no)
 # Renan -  ls_raw_1 eh o ls_clean
@@ -551,17 +410,17 @@ setkey(ls_raw_1,site_no)
 
 write_csv(site_band_quantiles_all, paste0(wd_exports,'all_sts_band_medians.csv'))
 
-#Renan - Diminui a quantidade de testes de 10 para 2 clusters. Aumentar para 3 depois.
+#Renan - Diminui a quantidade de testes de 10 para 1 clusters. Aumentar para 2 depois.
 ## Prepare data for cluster analysis
-clusters_calculated_list <- rep(list(NA), 2)
-ssc_model_cl_list <- rep(list(NA), 2)
-ssc_cluster_color_plot_list <- rep(list(NA), 2)
-ssc_cluster_false_color_plot_list <- rep(list(NA), 2)
+clusters_calculated_list <- rep(list(NA), 1)
+ssc_model_cl_list <- rep(list(NA), 1)
+ssc_cluster_color_plot_list <- rep(list(NA), 1)
+ssc_cluster_false_color_plot_list <- rep(list(NA), 1)
 
-for(i in c(1:2)){ # test different cluster numbers
+for(i in c(1:1)){ # test different cluster numbers
      # for(i in 5){ # test different cluster numbers
      
-     n_centers <- c(1:2)[i]
+     n_centers <- c(1:1)[i]
      
      cluster_col_name <- paste0('cluster_n',n_centers)
      # Calculate k-means cluster based on all regressors at all sites
@@ -587,7 +446,7 @@ for(i in c(1:2)){ # test different cluster numbers
      
      # Select SSC categories for plotting
      # ssc_categories <- c(0,25,50,100,250,500,750,1000,1500, 1e6)
-     ssc_categories <- c(0,50,100,250,500,750,1e6)
+     ssc_categories <- c(0,50,100,250,500,750,1000)
      # ssc_categories <- c(0,50,100,200,500,1e6)
      # ssc_categories <- c(0,10,25,50,75,100,150,200,250,300,350, 400, 450, 500,600, 700, 800,900,1000,1100,1500, 1e6)
      
@@ -659,7 +518,7 @@ for(i in c(1:2)){ # test different cluster numbers
      
      ls_insitu_cl <- getHoldout(ls_insitu_cl)
      # Generate calibration model for each cluster
-     ssc_model_cl_iterate <- getModels_lasso(ls_insitu_cl[abs_lag_days < 3 & site_no %chin% n_insitu_samples_bySite[
+     ssc_model_cl_iterate <- getModels_lasso(ls_insitu_cl[abs_lag_days < 9 & site_no %chin% n_insitu_samples_bySite[
           N_insitu_samples > 1]$site_no],
           #  .SD[sample(x = .N, 
           #               size = min(.N,min(.N, 500)))], 
@@ -692,7 +551,7 @@ for(i in c(1:2)){ # test different cluster numbers
      # SAVE FIGURE
      # ggsave(ssc_cluster_iterate_plot_holdout, filename = paste0('ssc_', cluster_col_name, '_iterate_plot_holdout.pdf'), useDingbats = F, 
      #        width = 6, height = 7)
-     ggsave(ssc_cluster_iterate_plot_holdout, filename = paste0(wd_exports, 'ssc_', cluster_col_name, '_iterate_plot_holdout.png'), 
+     ggsave(ssc_cluster_iterate_plot_holdout, filename = paste0(wd_exports, 'ssc_', cluster_col_name, '_iterate_plot_holdout.pdf'), 
             width = 6, height = 7)
      
      
