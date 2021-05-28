@@ -2,7 +2,6 @@
 #### FUNCTIONS ####
 # Generates random holdout set for each cluster
 getHoldout <- function(datatable){
-    set.seed(NULL)
     
      setDT(datatable)
      rows <- c()
@@ -38,6 +37,7 @@ getModels_lasso <- function(data, regressors){
      for(i in subsets){ # for individual cluster models
           regressors_sel <- regressors[-which(regressors == 'site_no')]
           lm_data_lm <- lm_data[ssc_subset == i] # only chooses sites within cluster
+          
           # lm_data_hold <- lm_data_lm[-which(lm_data_lm$site_no %in% holdout_sts),] # for eliminating certain sites
           lm_data_hold <- lm_data_lm[which(lm_data_lm$holdout25 == 'in'),]
           glm_y <- as.matrix(lm_data_hold[,log10_SSC_mgL])
@@ -46,7 +46,7 @@ getModels_lasso <- function(data, regressors){
           #Renan - Devemos escolher o k apropriado para nosso dataset. Por enquanto utilizaremos o método leave-one-out
           leave_one_out = nrow(lm_data_hold)
           ssc_lm <- cv.glmnet(x = glm_x, y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = leave_one_out)
-          cv.opt <- coef(ssc_lm, s = "lambda.1se")
+          cv.opt <- coef(ssc_lm, s = "lambda.min")
           
           coef_ex <- cbind(rownames(cv.opt),as.numeric(cv.opt))
           colnames(coef_ex) <- c('variable', 'value')
@@ -56,9 +56,10 @@ getModels_lasso <- function(data, regressors){
           glm_y <- NA
           
           cluster_funs[[i]] <- ssc_lm
-          glm_pred <- predict(ssc_lm, newx = as.matrix(lm_data_lm[,..regressors_sel]), s = "lambda.1se")
+          glm_pred <- predict(ssc_lm, newx = as.matrix(lm_data_lm[,..regressors_sel]), type = "response", s = "lambda.min")
           lm_data$pred_cl[which(lm_data$ssc_subset == i)] <- glm_pred
           
+          plot(ssc_lm)
           # lm_data$res_cl[which(lm_data$ssc_subset == i)] <- resid(ssc_lm)
      }
      
@@ -130,7 +131,8 @@ getErrorBias <- function(dt, subset_name){
           mape_cl_ind = (10^median(abs(log10(10^pred_cl/10^log10_SSC_mgL)), na.rm = T)-1),
           mape_st_ind = (10^median(abs(log10(10^pred_st/10^log10_SSC_mgL)), na.rm = T)-1)
      )]
-
+     
+     
      # For plotting: get percentage breaks for vertical dashed lines
      percent_error_dt <- data.table(error_breaks = c(0.1,0.5,1,2), 
                                     error_labels = c('< 10 %', '< 50 %', 
@@ -188,6 +190,9 @@ getErrorBias <- function(dt, subset_name){
                     # drainage_area_km2, begin_date, end_date)
      ]
      
+     medianSSC <- median(10^station_summary_subset$log10_SSC_mgL)
+     medianpre <- median(10^station_summary_subset$pred_cl)
+     
      # print(station_summary_subset)
      # Compute relative bias at every station; calculate median of all stations for global, cluster, station models
      # Following Morley et al., 2018
@@ -205,7 +210,13 @@ getErrorBias <- function(dt, subset_name){
           mape_st_sign = mape_st_sign*mape_st_stn
      )]
     
+     sim <-stn_rel_bias$pred_cl
+     obs <- stn_rel_bias$log10_SSC_mgL
      
+     # view((medianpre - medianSSC)/medianSSC)
+     # view(bias(sim, obs, type = 'standardized'))
+     # view(median(bias(sim, obs, type = 'standardized')))
+     # 
      # print(stn_rel_bias)
      # Compute relative bias at every station
      median_rel_bias <- stn_rel_bias[,.(
@@ -227,7 +238,7 @@ getErrorBias <- function(dt, subset_name){
           # geom_jitter(aes(x = as.factor(cluster_sel), y = mape_cl_sign, 
           #                 fill = as.factor(cluster_sel)), width = 0.2) +
           geom_text(data = median_rel_bias,
-                    aes(x = as.factor(1), y = 1.5, label = paste0('Median bias = ',round(bias_cl, 2))),
+                    aes(x = as.factor(1), y = 1.5, label = paste0('Viés Mediano = ',round(bias_cl, 2))),
                     hjust = 1,vjust = 0, size = 3, color="#b00000") +
           scale_fill_brewer(palette = 'Paired') +
           scale_y_continuous(lim = c(-1.5,1.5), breaks = seq(-1.5,1.5, by=0.2)) +

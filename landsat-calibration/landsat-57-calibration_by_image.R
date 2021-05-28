@@ -138,7 +138,7 @@ library(cluster)
 library(factoextra)
 library(FactoMineR)
 library(viridis)
-library(hrbrthemes)
+library(SimDesign)
 
 
 ##### LOAD SOURCES #####
@@ -268,7 +268,7 @@ taquari_insitu_site_nos <- unique(taquari_insitu_raw[!is.na(station_nm),station_
 #### JOIN LANDSAT AND IN SITU DATA, WITH LAG OF UP TO 10 DAYS, RESTRICT TO < 3 DAYS ####
 ## Join Landsat data with in situ data, allowing for as much as a 10-day lead/lag
 # Join Landsat data with in situ data
-lag_days <- 10
+lag_days <- 8
 # taquari_insitu_raw <- setDT(ls_clean)[all_acy_insitu_daily_mean, roll = lag_days][ # uni-directional join
 ls_insitu_raw <- setDT(ls_raw_1)[, ':='( 
              match_dt_start = landsat_dt - lag_days,
@@ -318,7 +318,6 @@ regressors_all <- c('B1', 'B2', 'B3', 'B4', 'B5', 'B7', # raw bands
 regressors_primary <- c(regressors_no_site, 'B4.B3.B1') # all regressors
 
 ##### ESCOLHER A ESTACAO PARA TESTAR OS MODELOS ####
-
 #Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000, Coxim - 66870000
 ls_insitu_raw <- ls_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
 ls_raw_1 <- ls_raw_1[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
@@ -400,7 +399,7 @@ clustering_vars <- unlist(strsplit(as.character(ccc_best[1,'variables']),'_')) #
 # clustering_vars <- c('B1','B4','B2.B1','B3.B1')
 # Compute number of in situ-landsat pairs per station
 # Renan - Removi o filtro abs_lag_days < 3 para retornar algum registros, esse dado esta estranho no tabela
-n_insitu_samples_bySite <- ls_insitu_raw[!is.na(log10_SSC_mgL) & abs_lag_days <= 10,.(N_insitu_samples = .N), by = .(site_no)]
+n_insitu_samples_bySite <- ls_insitu_raw[!is.na(log10_SSC_mgL) & abs_lag_days <= 8,.(N_insitu_samples = .N), by = .(site_no)]
 # Compute band median at each site for clustering variables
 # setkey(n_insitu_samples_bySite,site_no)
 # Renan -  ls_raw_1 eh o ls_clean
@@ -442,7 +441,7 @@ for(i in c(1:1)){ # test different cluster numbers
      # TYPICAL RIVER SEDIMENT COLOR AT DIFFERENT CLUSTERS
      # Select SSC categories for plotting
      # ssc_categories <- c(0,25,50,100,250,500,750,1000,1500, 1e6)
-     ssc_categories <- c(0,200,400,600,800,1000)
+     ssc_categories <- c(0,200,400,600,800,1000,1200)
      # ssc_categories <- c(0,50,100,200,500,1e6)
      # ssc_categories <- c(0,10,25,50,75,100,150,200,250,300,350, 400, 450, 500,600, 700, 800,900,1000,1100,1500, 1e6)
      
@@ -454,9 +453,10 @@ for(i in c(1:1)){ # test different cluster numbers
      ## Add cluster group as column to ls-insitu matched data.table
      ## Renan de match_name para site_no
      setkey(ls_insitu_raw, landsat_dt)
-     setkey(clustered_sites, landsat_dt)
-     ls_insitu_cl <- ls_insitu_raw[clustered_sites][
-          ,':='(cluster_sel = cluster,
+     #setkey(clustered_sites, landsat_dt)
+     #Renan - Fixando 1 cluster
+     ls_insitu_cl <- ls_insitu_raw[
+          ,':='(cluster_sel = 1,
                 # # Categorize SSC value as one of selected categories
                 ssc_category = cut(10^log10_SSC_mgL, 
                                    breaks = ssc_categories,
@@ -465,7 +465,7 @@ for(i in c(1:1)){ # test different cluster numbers
      # Select cluster for analysis
      # # Generate median B,G,R, near-infrared for each SSC category and each cluster or site
      # Renan - Removi o filtro abs_lag_days < 3 para retornar algum registros, esse dado esta estranho no tabela
-     ssc_category_color <- ls_insitu_cl[abs(lag_days) <= 10,
+     ssc_category_color <- ls_insitu_cl[abs(lag_days) <= 8,
                                         keyby = .(cluster_sel, ssc_category),
                                         lapply(.SD, median,na.rm = T),
                                         .SDcols = c('B1','B2','B3', 'B4')]
@@ -530,7 +530,7 @@ for(i in c(1:1)){ # test different cluster numbers
      
      ls_insitu_cl <- getHoldout(ls_insitu_cl)
      # Generate calibration model for each cluster
-     ssc_model_cl_iterate <- getModels_lasso(ls_insitu_cl[abs_lag_days < 10 & site_no %chin% n_insitu_samples_bySite[
+     ssc_model_cl_iterate <- getModels_lasso(ls_insitu_cl[abs_lag_days <= 8 & site_no %chin% n_insitu_samples_bySite[
           N_insitu_samples > 1]$site_no],
           #  .SD[sample(x = .N, 
           #               size = min(.N,min(.N, 500)))], 
@@ -570,7 +570,7 @@ for(i in c(1:1)){ # test different cluster numbers
      regressors_sel <- regressors_all[-which(regressors_all == 'site_no')]
      matrix <- data.matrix(ls_raw_1[,..regressors_sel])
      
-     glm_pred <- cbind(ls_raw_1, predict=predict(object=ssc_model, newx = matrix, s=0.01, type="response"))
+     glm_pred <- cbind(ls_raw_1, predict=predict(object=ssc_model, newx = matrix,  s = "lambda.min", type="response"))
      stations_predicted <- data.frame(glm_pred[, .(station_nm), .(station_nm)])[,1]
      #cbPalette <- c("#b2df8a", "#cab2d6", "#fdbf6f")
      
@@ -582,14 +582,15 @@ for(i in c(1:1)){ # test different cluster numbers
         data <- data.frame(xValue,yValue, name=glm_pred_station$station_nm)
         
         #color <-  cbPalette[which(stations_predicted == station)]
-       
+       print(nrow(data))
          # Plot
         predictplot <-ggplot(data, aes(x=xValue, y=yValue)) +
             geom_line(color="#b15928", size=0.3) +
+            geom_point(size=1)+
             geom_smooth(method = "lm", color="#000000", size=0.5, fill="#ededd5")+
             scale_x_date(date_labels = "%b/%y", date_breaks = "6 month", limits = as.Date(c("1985-01-01","2020-01-01")),
                                                                                           expand = c(0, 50))+
-            scale_y_continuous(breaks = seq(0, 1000, by = 100), limits = c(0, 1000))+
+            scale_y_continuous(breaks = seq(0, 1000, by = 50), limits = c(100, 500))+
             ylab("Concentração de Sedimentoos Estimada (mg/L)")+
             xlab(station)+
             theme_clean()+
@@ -597,7 +598,7 @@ for(i in c(1:1)){ # test different cluster numbers
                   plot.background = element_blank())
         
         ggsave(predictplot, filename = paste0(wd_exports, 'ssc_', station, '_predict.png'), 
-            width = 12, height = 6)
+            width = 12, height = 4.5)
       }
     
      
@@ -611,3 +612,4 @@ for(i in c(1:1)){ # test different cluster numbers
                             cbind(data.frame(ssc_model_cl_iterate_rerr),n_clusters_df))
      }
 }
+
