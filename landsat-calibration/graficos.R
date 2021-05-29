@@ -2,12 +2,12 @@
 plotDataSet <- function(ls_raw_1, taquari_insitu_raw, ls_insitu_raw) { 
    # Plot number of satellite samples per site as a histogram
    # Renan - Plotar número de amostras por estação
-   data <-  ls_raw_1[landsat_dt>="2005-01-01" & landsat_dt<="2019-12-31",.(image = .N), by = .(station_nm)][order(station_nm)]
-   data1 <- taquari_insitu_raw[order(station_nm),.(insitu = .N), by = .(station_nm)]
-   data2 <- ls_insitu_raw[order(station_nm),.(match = .N), by = .(station_nm)]
+   imagens <-  ls_raw_1[landsat_dt>="2005-01-01" & landsat_dt<="2019-12-31",.(image = .N), by = .(station_nm)][order(station_nm)]
+   insitu <- taquari_insitu_raw[order(station_nm),.(insitu = .N), by = .(station_nm)]
+   match <- ls_insitu_raw[order(station_nm),.(match = .N), by = .(station_nm)]
    
-   data3 <- cbind(data, data1[,c(2)], data2[,c(2)])
-   means.long<-melt(data3,id.vars="station_nm")
+   dataset <- cbind(imagens, insitu[,c(2)], match[,c(2)])
+   means.long<-melt(dataset,id.vars="station_nm")
    
    # Grouped
    n_sat_samples_histogram <-ggplot(means.long, aes(fill=variable, y=value, x=reorder(station_nm, -value))) + 
@@ -25,7 +25,8 @@ plotDataSet <- function(ls_raw_1, taquari_insitu_raw, ls_insitu_raw) {
       labs(
          x = NULL,
          y = 'Quantidade de Amostras'
-      ) 
+      )
+   
    
    # Save satellite images/site histogram
    ggsave(n_sat_samples_histogram, filename = paste0(wd_figures,'n_sat_samples_histogram.png'), width = 6, height = 4)

@@ -11,7 +11,9 @@ getHoldout <- function(datatable){
           # print(length(rows))
      }
      
-     datatable[,holdout25:='in'][rows,holdout25:='holdout']
+     #eliminando dataset de teste
+     #datatable[,holdout25:='in'][rows,holdout25:='holdout']
+     datatable[,holdout25:='holdout']
      
      return(datatable)
      
@@ -39,13 +41,13 @@ getModels_lasso <- function(data, regressors){
           lm_data_lm <- lm_data[ssc_subset == i] # only chooses sites within cluster
           
           # lm_data_hold <- lm_data_lm[-which(lm_data_lm$site_no %in% holdout_sts),] # for eliminating certain sites
-          lm_data_hold <- lm_data_lm[which(lm_data_lm$holdout25 == 'in'),]
+          lm_data_hold <- lm_data_lm[]
           glm_y <- as.matrix(lm_data_hold[,log10_SSC_mgL])
           glm_x <- as.matrix(lm_data_hold[,..regressors_sel])
           
           #Renan - Devemos escolher o k apropriado para nosso dataset. Por enquanto utilizaremos o método leave-one-out
           leave_one_out = nrow(lm_data_hold)
-          ssc_lm <- cv.glmnet(x = glm_x, y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = leave_one_out)
+          ssc_lm <- cv.glmnet(x = glm_x, y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = 5)
           cv.opt <- coef(ssc_lm, s = "lambda.min")
           
           coef_ex <- cbind(rownames(cv.opt),as.numeric(cv.opt))
@@ -58,6 +60,17 @@ getModels_lasso <- function(data, regressors){
           cluster_funs[[i]] <- ssc_lm
           glm_pred <- predict(ssc_lm, newx = as.matrix(lm_data_lm[,..regressors_sel]), type = "response", s = "lambda.min")
           lm_data$pred_cl[which(lm_data$ssc_subset == i)] <- glm_pred
+
+          sst <- sum((lm_data_hold[,log10_SSC_mgL] - mean(lm_data_hold[,log10_SSC_mgL]))^2)
+          sse <- sum((glm_pred - lm_data_hold[,log10_SSC_mgL])^2)
+          
+          # R squared
+          rsq <- 1 - sse / sst
+          print(rsq)
+          
+          print(rmse(lm_data_hold[,log10_SSC_mgL] , glm_pred))
+          print(R2_Score(glm_pred, lm_data_hold[,log10_SSC_mgL]))
+          
           
           plot(ssc_lm)
           # lm_data$res_cl[which(lm_data$ssc_subset == i)] <- resid(ssc_lm)
@@ -268,6 +281,8 @@ fancy_scientific <- function(l) {
 
 # Plot results of SSC calibration, with several adjustable parameters
 get_sscPlot <- function(ssc_data,ssc_title,density_yn, validation){
+    
+        
         ## Test data
         # ssc_data <- ssc_model_cl_iterate_pred
         # ssc_title <- "byCluster"

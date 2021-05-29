@@ -139,6 +139,8 @@ library(factoextra)
 library(FactoMineR)
 library(viridis)
 library(SimDesign)
+library(Metrics)
+library(MLmetrics)
 
 
 ##### LOAD SOURCES #####
@@ -192,7 +194,8 @@ set.seed(1)
 # raw continuous data for regression
 
 # Import landsat spectral data from each site of interest
-ls_raw <- fread("gee/table1_taquari.csv")
+#ls_raw <- fread("gee/table1_taquari_surface.csv")
+ls_raw <- fread("gee/table1_taquari_toa.csv")
 
 ###### Coloque para a coluna site_no como taquari, mas acho que vamos precisar colocar
 ###### o nome da esta??o na hora de exportar os dados do GEE. (n?o tenho certeza disso ainda)
@@ -245,15 +248,13 @@ ls_raw_1 <-
                ,.(station_nm, sensor, site_no, Latitude,Longitude, num_pix, landsat_dt,
                   B1,B2,B3,B4,B5,B6,B7,B2.B1,B2.B1,B3.B1,B4.B1,B5.B1,B7.B1,B3.B2,B4.B2,B5.B2,
                   B7.B2,B4.B3,B5.B3,B7.B3,B5.B4,B7.B4,B7.B5,B1.2,B2.2,B3.2,B4.2,B5.2,B7.2,
-                  nd52,cloud_cover,cloud_qa_count,snow_ice_qa_count, 
-                  solar_az, solar_zen,sr_atmos_opacity_median,sr_cloud_qa_median
+                  nd52,cloud_cover
                )]
 
 ## Identify sites with too few Landsat measurements to be reliable
 
 # Calculate number of satellite samples, per site
-n_sat_samples <- 
-     ls_raw_1[,.(N_samples = .N), by = .(station_nm)]
+n_sat_samples <- ls_raw_1[,.(N_samples = .N), by = .(station_nm)]
 
 #### IMPORT AND CLEAN -- IN SITU DATA ####
 
@@ -301,27 +302,27 @@ ls_insitu_raw <- setDT(ls_raw_1)[, ':='(
 
 #### REGRESSION VARIABLES ####
 # Select explanatory variables (regressors) for mulitple regression model
-regressors_no_site <- c('B1', 'B2', 'B3', 'B4', 'B5', 'B7', # raw bands
-                        'B2.B1', 'B3.B1', 'B4.B1', 'B5.B1', 'B7.B1', # band ratios
-                        'B3.B2', 'B4.B2', 'B5.B2', 'B7.B2',
-                        'B4.B3', 'B5.B3', 'B7.B3',
-                        'B5.B4', 'B7.B4', 'B7.B5')
-regressors_all <- c('B1', 'B2', 'B3', 'B4', 'B5', 'B7', # raw bands
-                    'B1.2', 'B2.2', 'B3.2', 'B4.2', 'B5.2', 'B7.2', # squared bands
+regressors_no_site <- c('B1', 'B2', 'B3', 'B4', 'B5', # raw bands
+                        'B2.B1', 'B3.B1', 'B4.B1', 'B5.B1' , # band ratios
+                        'B3.B2', 'B4.B2', 'B5.B2', 'B4.B3', 'B5.B3', 'B5.B4')
+regressors_all <- c('B1', 'B2', 'B3', 'B4', 'B5', # raw bands
+                    'B1.2', 'B2.2', 'B3.2', 'B4.2', 'B5.2', # squared bands
                     'site_no', # no clear way to add categorical variables
-                    'B2.B1', 'B3.B1', 'B4.B1', 'B5.B1', 'B7.B1', # band ratios
-                    'B3.B2', 'B4.B2', 'B5.B2', 'B7.B2',
-                    'B4.B3', 'B5.B3', 'B7.B3',
-                    'B5.B4', 'B7.B4', 'B7.B5')
+                    'B2.B1', 'B3.B1', 'B4.B1', 'B5.B1', # band ratios
+                    'B3.B2', 'B4.B2', 'B5.B2',
+                    'B4.B3', 'B5.B3', 'B5.B4')
 
 # Select regressors - bands and band ratios
 regressors_primary <- c(regressors_no_site, 'B4.B3.B1') # all regressors
 
 ##### ESCOLHER A ESTACAO PARA TESTAR OS MODELOS ####
 #Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000, Coxim - 66870000
-ls_insitu_raw <- ls_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
-ls_raw_1 <- ls_raw_1[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
-taquari_insitu_raw <- taquari_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)] 
+# ls_insitu_raw <- ls_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
+# ls_raw_1 <- ls_raw_1[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
+# taquari_insitu_raw <- taquari_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
+ls_insitu_raw <- ls_insitu_raw[(site_no == 66845000)]
+ls_raw_1 <- ls_raw_1[( site_no == 66845000)]
+taquari_insitu_raw <- taquari_insitu_raw[( site_no == 66845000)]
 
 # Select minimum lead/lag row
 setkey(ls_insitu_raw[,abs_lag_days := abs(lag_days)], abs_lag_days)
@@ -436,7 +437,6 @@ for(i in c(1:1)){ # test different cluster numbers
      clustered_sites <- site_band_quantiles_all[,.(landsat_dt,cluster)]
      
      write_csv(site_band_quantiles_all,paste0(wd_exports,'site_band_quantiles_n',i,'.csv'))
-     
      
      # TYPICAL RIVER SEDIMENT COLOR AT DIFFERENT CLUSTERS
      # Select SSC categories for plotting
@@ -565,31 +565,35 @@ for(i in c(1:1)){ # test different cluster numbers
      ggsave(ssc_cluster_iterate_plot_holdout, filename = paste0(wd_exports, 'ssc_', cluster_col_name, '_iterate_plot_holdout.png'), 
             width = 7, height = 7)
      
+     landsat5 <- ls_raw_1[sensor=='Landsat 5' & landsat_dt<"2009-12-31"]
+     landsat7 <- ls_raw_1[sensor=='Landsat 7' & landsat_dt>"2009-12-31"]
+     
+     landsat <- rbind(landsat5, landsat7)
      
      ssc_model <- ssc_model_cl_iterate[2][[1]][[1]]
      regressors_sel <- regressors_all[-which(regressors_all == 'site_no')]
-     matrix <- data.matrix(ls_raw_1[,..regressors_sel])
+     matrix <- data.matrix(landsat[,..regressors_sel])
      
-     glm_pred <- cbind(ls_raw_1, predict=predict(object=ssc_model, newx = matrix,  s = "lambda.min", type="response"))
+     glm_pred <- cbind(landsat, predict=predict(object=ssc_model, newx = matrix,  s = "lambda.min", type="response"))
      stations_predicted <- data.frame(glm_pred[, .(station_nm), .(station_nm)])[,1]
      #cbPalette <- c("#b2df8a", "#cab2d6", "#fdbf6f")
      
      for(station in stations_predicted){
-        glm_pred_station = glm_pred[station_nm==station] 
+        glm_pred_station <- glm_pred[station_nm==station]
+        
         # create data
-        xValue <- glm_pred_station$landsat_dt
-        yValue <- 10^glm_pred_station$predict.1
-        data <- data.frame(xValue,yValue, name=glm_pred_station$station_nm)
+        landsat_dt <- glm_pred_station$landsat_dt
+        ssc_prediction <- 10^glm_pred_station$predict.1
+        data <- data.frame(landsat_dt,ssc_prediction, name=glm_pred_station$station_nm)
         
         #color <-  cbPalette[which(stations_predicted == station)]
-       print(nrow(data))
-         # Plot
-        predictplot <-ggplot(data, aes(x=xValue, y=yValue)) +
-            geom_line(color="#b15928", size=0.3) +
-            geom_point(size=1)+
-            geom_smooth(method = "lm", color="#000000", size=0.5, fill="#ededd5")+
-            scale_x_date(date_labels = "%b/%y", date_breaks = "6 month", limits = as.Date(c("1985-01-01","2020-01-01")),
-                                                                                          expand = c(0, 50))+
+        predictplot <-ggplot(data, aes(x=landsat_dt, y=ssc_prediction)) +
+            #geom_line(color="#b15928", size=0.3) +
+            geom_point(size=0.5)+
+            geom_ma(linetype="solid", ma_fun = SMA, n = 10, color="#b15928",) +
+            #geom_smooth(method = "loess", color="#000000", size=0.5, fill="#ededd5")+
+            scale_x_date(date_labels = "%b/%y", date_breaks = "1 year", 
+                         limits = as.Date(c("1985-01-01","2020-01-01")), expand = c(0, 50))+
             scale_y_continuous(breaks = seq(0, 1000, by = 50), limits = c(100, 500))+
             ylab("Concentração de Sedimentoos Estimada (mg/L)")+
             xlab(station)+
@@ -597,8 +601,30 @@ for(i in c(1:1)){ # test different cluster numbers
             theme(axis.text.x=element_text(angle=60, hjust=1),
                   plot.background = element_blank())
         
-        ggsave(predictplot, filename = paste0(wd_exports, 'ssc_', station, '_predict.png'), 
+          ggsave(predictplot, filename = paste0(wd_exports, 'ssc_', station, '_predict.png'), 
             width = 12, height = 4.5)
+        
+        
+          insitu_raw_station <- ssc_model_cl_iterate_pred[station_nm==station]
+        
+          lagdaysError <- ggplot(insitu_raw_station) + 
+            geom_point(aes(x=lag_days, y=se(log10_SSC_mgL, pred_cl)),colour="black")+
+            theme(
+              legend.position = c(.85, .85),
+              legend.key.size = unit(5, 'mm'),
+              legend.title = element_text(size=10), #change legend title font size
+              legend.text = element_text(size=8),
+              plot.background = element_blank())+
+            theme_clean()+
+            scale_y_continuous(breaks = seq(0, 1, by = 0.1), limits = c(0, 0.5))+
+            scale_x_continuous(breaks = seq(-9, 9, by = 1), limits = c(-9, 9))+
+            labs(
+              y = 'Erro Quadrático',
+              x = 'Lag Days'
+            ) 
+          
+          ggsave(lagdaysError, filename = paste0(wd_exports, 'ssc_', station, '_lagdays_error.png'), 
+                 width = 6, height = 5)
       }
     
      
