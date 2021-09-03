@@ -47,7 +47,7 @@ getModels_lasso <- function(data, regressors){
           
           #Renan - Devemos escolher o k apropriado para nosso dataset. Por enquanto utilizaremos o método leave-one-out
           leave_one_out = nrow(lm_data_hold)
-          ssc_lm <- cv.glmnet(x = glm_x, y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = 5)
+          ssc_lm <- cv.glmnet(x = glm_x, y = glm_y, family = 'gaussian', type.measure = "mse", nfolds = leave_one_out)
           cv.opt <- coef(ssc_lm, s = "lambda.min")
           
           coef_ex <- cbind(rownames(cv.opt),as.numeric(cv.opt))
@@ -61,16 +61,10 @@ getModels_lasso <- function(data, regressors){
           glm_pred <- predict(ssc_lm, newx = as.matrix(lm_data_lm[,..regressors_sel]), type = "response", s = "lambda.min")
           lm_data$pred_cl[which(lm_data$ssc_subset == i)] <- glm_pred
 
-          sst <- sum((lm_data_hold[,log10_SSC_mgL] - mean(lm_data_hold[,log10_SSC_mgL]))^2)
-          sse <- sum((glm_pred - lm_data_hold[,log10_SSC_mgL])^2)
-          
-          # R squared
-          rsq <- 1 - sse / sst
-          print(rsq)
-          
-          print(rmse(lm_data_hold[,log10_SSC_mgL] , glm_pred))
-          print(R2_Score(glm_pred, lm_data_hold[,log10_SSC_mgL]))
-          
+       
+          # print(paste0('RSME= ', rmse(lm_data_hold[,log10_SSC_mgL] , glm_pred)))
+          # print(paste0('R2= ', R2_Score(glm_pred, lm_data_hold[,log10_SSC_mgL])))
+          # 
           
           plot(ssc_lm)
           # lm_data$res_cl[which(lm_data$ssc_subset == i)] <- resid(ssc_lm)
@@ -294,16 +288,16 @@ get_sscPlot <- function(ssc_data,ssc_title,density_yn, validation){
                 cl_colors <- rep('#1f78b4',5)
                 ssc_plot <- ggplot(data = ssc_data,   
                                    aes(x = 10^(log10_SSC_mgL), y = 10^(pred_gl))) +
-                geom_abline(intercept = 0, slope = 1, color = '#1f78b4')
+                geom_abline(intercept = 0, slope = 1, color = '#333333')
                     
         } else if(ssc_title == "byCluster"){
                 ssc_plot <- ggplot(data = ssc_data,   
                                    aes(x = 10^(log10_SSC_mgL), y = 10^(pred_cl))) +
-                    geom_abline(intercept = 0, slope = 1, color = '#1f78b4')
+                    geom_abline(intercept = 0, slope = 1, color = '#333333')
         } else {
                 ssc_plot <- ggplot(data = ssc_data,   
                                    aes(x = 10^(log10_SSC_mgL), y = 10^(pred_st))) +
-                    geom_abline(intercept = 0, slope = 1, color = '#1f78b4')
+                    geom_abline(intercept = 0, slope = 1, color = '#333333')
         }
         n_samples <- nrow(ssc_data)
         if(density_yn == "yes"){
@@ -332,8 +326,8 @@ get_sscPlot <- function(ssc_data,ssc_title,density_yn, validation){
                 ssc_plot <- ssc_plot +
                         geom_point(aes(
                                 # fill = as.factor(cluster_sel)
-                                # ,color = as.factor(cluster_sel)), pch = 16,
-                        ),color = '#e31a1c', fill="#fb9a99", pch = 21,
+                                # ,color =ff as.factor(cluster_sel)), pch = 16,
+                        ),color = '#000000', fill="#FF0000", pch = 21,
                         # color = "black", pch = 21, alpha = 0.8, # comment to remove outline
                         size = 4, alpha = min(1,1/(sqrt(n_samples*0.001))))
         }

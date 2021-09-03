@@ -195,7 +195,7 @@ set.seed(1)
 
 # Import landsat spectral data from each site of interest
 #ls_raw <- fread("gee/table1_taquari_surface.csv")
-ls_raw <- fread("gee/table1_taquari_toa.csv")
+ls_raw <- fread("gee/table1_taquari_surface.csv")
 
 ###### Coloque para a coluna site_no como taquari, mas acho que vamos precisar colocar
 ###### o nome da esta??o na hora de exportar os dados do GEE. (n?o tenho certeza disso ainda)
@@ -288,8 +288,9 @@ ls_insitu_raw <- setDT(ls_raw_1)[, ':='(
           # Add Log10 SSC, squared cols, and remove no values, too cold (B6 < 269) values
           as.double(ConcentracaoMatSuspensao) > 0,
           ':='(
-               log10_SSC_mgL = log10(ConcentracaoMatSuspensao),
-               B1.2 = B1^2,
+            log10_SSC_mgL = log10(ConcentracaoMatSuspensao),
+            # log10_SSC_mgL = ln(ConcentracaoMatSuspensao),
+              B1.2 = B1^2,
                B2.2 = B2^2,
                B3.2 = B3^2,
                B4.2 = B4^2,
@@ -297,7 +298,8 @@ ls_insitu_raw <- setDT(ls_raw_1)[, ':='(
                B7.2 = B7^2
           )
         ][
-          !is.na(log10_SSC_mgL) & B6 > 268
+          #retornar esse valor
+          !is.na(log10_SSC_mgL) & B6 > 0
         ]
 
 #### REGRESSION VARIABLES ####
@@ -316,7 +318,7 @@ regressors_all <- c('B1', 'B2', 'B3', 'B4', 'B5', # raw bands
 regressors_primary <- c(regressors_no_site, 'B4.B3.B1') # all regressors
 
 ##### ESCOLHER A ESTACAO PARA TESTAR OS MODELOS ####
-#Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000, Coxim - 66870000
+# # #Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000, Coxim - 66870000
 # ls_insitu_raw <- ls_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
 # ls_raw_1 <- ls_raw_1[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
 # taquari_insitu_raw <- taquari_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
@@ -328,8 +330,15 @@ taquari_insitu_raw <- taquari_insitu_raw[( site_no == 66845000)]
 setkey(ls_insitu_raw[,abs_lag_days := abs(lag_days)], abs_lag_days)
 ls_insitu_raw <- ls_insitu_raw[, .SD[1], .(site_no, sample_date)]
 
-fwrite(ls_insitu_raw,paste0(wd_exports,'ls_insitu_match.csv'))
-plotDataSet(ls_raw_1, taquari_insitu_raw, ls_insitu_raw)
+fwrite(ls_insitu_raw,paste0(wd_exports,''))
+station_summary <- plotDataSet(ls_raw_1, taquari_insitu_raw, ls_insitu_raw)
+
+station_summary <- station_summary[, ':='(
+    maxSSCInsitu=max(taquari_insitu_raw$ConcentracaoMatSuspensao),
+    minSSCInsitu=min(taquari_insitu_raw$ConcentracaoMatSuspensao),
+    maxSSCMatch=max(ls_insitu_raw$ConcentracaoMatSuspensao),
+    minSSCMatch=min(ls_insitu_raw$ConcentracaoMatSuspensao)
+  )]
 
 #### RUN REGRESSION FOR CLUSTERING WITH 1-7 CLUSTERS -- TAKES ~45 MINS ####
 # https://en.wikipedia.org/wiki/Color_quantization something to check out
@@ -441,7 +450,7 @@ for(i in c(1:1)){ # test different cluster numbers
      # TYPICAL RIVER SEDIMENT COLOR AT DIFFERENT CLUSTERS
      # Select SSC categories for plotting
      # ssc_categories <- c(0,25,50,100,250,500,750,1000,1500, 1e6)
-     ssc_categories <- c(0,200,400,600,800,1000,1200)
+     ssc_categories <- c(0,250,500,750,1000, 1500)
      # ssc_categories <- c(0,50,100,200,500,1e6)
      # ssc_categories <- c(0,10,25,50,75,100,150,200,250,300,350, 400, 450, 500,600, 700, 800,900,1000,1100,1500, 1e6)
      
@@ -553,11 +562,15 @@ for(i in c(1:1)){ # test different cluster numbers
                                            paste0('Erro Relativo = ', 
                                                   round(ssc_model_cl_iterate_rerr[,.(mape_gl_ind,mape_cl_ind,mape_st_ind)],2))[2]) %>% 
           mutate(holdout25 = c('holdout'), SSC_mgL = 50, pred = 650)
-     # Plot actual vs. predicted for holdout. Annotate with RMSE.
+     
+    
+     rsme <- paste0('RSME= ', round(rmse(10^ssc_model_cl_iterate_pred[,log10_SSC_mgL] ,10^ssc_model_cl_iterate_pred[,pred_cl ]),2))
+     r2 <- paste0('R2= ', round(R2_Score(10^ssc_model_cl_iterate_pred[,pred_cl], 10^ssc_model_cl_iterate_pred[,log10_SSC_mgL]),2))
+     
+      # Plot actual vs. predicted for holdout. Annotate with RMSE.
      ssc_cluster_iterate_plot_holdout <- get_sscPlot(ssc_model_cl_iterate_pred,"byCluster",'no','no') +
-          geom_text(data = rel_error_annotate, 
-                    aes(x = SSC_mgL, y = pred, label = rel_error), 
-                    hjust = 0, vjust = 0, size=5, color="#b00000")
+       geom_text(aes(x = 50, y = 650, label = rsme), hjust = 0, vjust = 0, size=5, color="#000000")+
+       geom_text(aes(x = 50, y = 620, label = r2), hjust = 0, vjust = 0, size=5, color="#000000")
      
      # SAVE FIGURE
      # ggsave(ssc_cluster_iterate_plot_holdout, filename = paste0('ssc_', cluster_col_name, '_iterate_plot_holdout.pdf'), useDingbats = F, 
@@ -570,28 +583,36 @@ for(i in c(1:1)){ # test different cluster numbers
      
      landsat <- rbind(landsat5, landsat7)
      
+     
      ssc_model <- ssc_model_cl_iterate[2][[1]][[1]]
      regressors_sel <- regressors_all[-which(regressors_all == 'site_no')]
      matrix <- data.matrix(landsat[,..regressors_sel])
      
      glm_pred <- cbind(landsat, predict=predict(object=ssc_model, newx = matrix,  s = "lambda.min", type="response"))
      stations_predicted <- data.frame(glm_pred[, .(station_nm), .(station_nm)])[,1]
-     #cbPalette <- c("#b2df8a", "#cab2d6", "#fdbf6f")
+     cbPalette <- c("#0000FF", "#02b31a", "#FF0000")
      
      for(station in stations_predicted){
         glm_pred_station <- glm_pred[station_nm==station]
+        
+        station_summary <- station_summary[, ':='(
+          serieImage = nrow(landsat)
+        )]
+        write_csv(station_summary, paste0(wd_exports, station,'_station_summary.csv'))
         
         # create data
         landsat_dt <- glm_pred_station$landsat_dt
         ssc_prediction <- 10^glm_pred_station$predict.1
         data <- data.frame(landsat_dt,ssc_prediction, name=glm_pred_station$station_nm)
+        data <-data[order(data$landsat_dt),]
+        color <-  cbPalette[which(stations_predicted == station)]
         
-        #color <-  cbPalette[which(stations_predicted == station)]
         predictplot <-ggplot(data, aes(x=landsat_dt, y=ssc_prediction)) +
-            #geom_line(color="#b15928", size=0.3) +
-            geom_point(size=0.5)+
-            geom_ma(linetype="solid", ma_fun = SMA, n = 10, color="#b15928",) +
-            #geom_smooth(method = "loess", color="#000000", size=0.5, fill="#ededd5")+
+            geom_line(color=color, size=0.4) +
+            geom_point(color=color, size=0.4)+
+            # geom_path()+
+            # geom_ma(linetype="solid", ma_fun = SMA, n = 10, color="#b15928",) +
+            # geom_smooth(method = "loess", color="#000000", size=0.5, fill="#ededd5")+
             scale_x_date(date_labels = "%b/%y", date_breaks = "1 year", 
                          limits = as.Date(c("1985-01-01","2020-01-01")), expand = c(0, 50))+
             scale_y_continuous(breaks = seq(0, 1000, by = 50), limits = c(100, 500))+
@@ -606,9 +627,12 @@ for(i in c(1:1)){ # test different cluster numbers
         
         
           insitu_raw_station <- ssc_model_cl_iterate_pred[station_nm==station]
+          
+          insitu_raw_station <- insitu_raw_station[,':='(
+                                                   absoluteError = ae(10^log10_SSC_mgL, 10^pred_cl))]
         
           lagdaysError <- ggplot(insitu_raw_station) + 
-            geom_point(aes(x=lag_days, y=se(log10_SSC_mgL, pred_cl)),colour="black")+
+            geom_point(aes(x=lag_days, y=absoluteError),color = '#000000', fill="#FF0000", pch = 21, size=3)+
             theme(
               legend.position = c(.85, .85),
               legend.key.size = unit(5, 'mm'),
@@ -616,10 +640,10 @@ for(i in c(1:1)){ # test different cluster numbers
               legend.text = element_text(size=8),
               plot.background = element_blank())+
             theme_clean()+
-            scale_y_continuous(breaks = seq(0, 1, by = 0.1), limits = c(0, 0.5))+
+            scale_y_continuous(breaks = seq(0, 500, by = 50), limits = c(0, 500))+
             scale_x_continuous(breaks = seq(-9, 9, by = 1), limits = c(-9, 9))+
             labs(
-              y = 'Erro Quadrático',
+              y = 'Erro Absoluto (mg/L)',
               x = 'Lag Days'
             ) 
           

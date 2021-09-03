@@ -27,7 +27,8 @@ plotDataSet <- function(ls_raw_1, taquari_insitu_raw, ls_insitu_raw) {
          y = 'Quantidade de Amostras'
       )
    
-   
    # Save satellite images/site histogram
    ggsave(n_sat_samples_histogram, filename = paste0(wd_figures,'n_sat_samples_histogram.png'), width = 6, height = 4)
+   
+   return(dataset)
 } 
