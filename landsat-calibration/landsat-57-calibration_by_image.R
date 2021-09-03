@@ -1,318 +1,41 @@
-#### LIBRARY IMPORTS ####
-
-#install.packages("wrapr")
-library(wrapr)
-
-#install.packages("base")
-library(base)
-
-#install.packages("mod")
-library(mod)
-
-#install.packages("dataRetrieval")
-library(dataRetrieval)
-
-#install.packages("tidyhydat")
-library(tidyhydat)
-
-#install.packages("readr")
-library(readr)
-
-#install.packages("readxl")
-library(readxl)
-
-#install.packages("ggplot2")
-library(ggplot2)
-
-#install.packages("ggthemes")
-library(ggthemes)
-
-#install.packages("RColorBrewer")
-library(RColorBrewer)
-
-#install.packages("ggpubr")
-library(ggpubr)
-
-#install.packages("gstat")
-library(gstat)
-
-#install.packages("ggspatial")
-library(ggspatial)
-
-#install.packages("svglite")
-library(svglite)
-
-#install.packages("plotly")
-library(plotly)
-
-#install.packages("data.table")
-library(data.table)
-
-#install.packages("dplyr")
-library(dplyr) #hoping to move away from dplyr
-
-#install.packages("tidyverse")
-library(tidyverse)
-
-#install.packages("tidyquant")
-library(tidyquant)
-
-#install.packages("tidyr")
-library(tidyr)
-
-#install.packages("broom")
-library(broom)
-
-#install.packages("modelr")
-library(modelr)
-
-#install.packages("scales")
-library(scales)
-
-#install.packages("kdensity")
-library(kdensity)
-
-#install.packages("NbClust")
-library(NbClust)
-
-#install.packages("zoo")
-library(zoo)
-
-#install.packages("segmented")
-library(segmented)
-
-#install.packages("lubridate")
-library(lubridate)
-
-#install.packages("reshape2")
-library(reshape2)
-
-#install.packages("matrixStats")
-library(matrixStats)
-
-#install.packages("smoother")
-library(smoother)
-
-#install.packages("glmnet")
-library(glmnet)
-
-#install.packages("boot")
-library(boot)
-
-#install.packages("kernelboot")
-library(kernelboot)
-
-#install.packages("np")
-library(np)
-
-#install.packages("automap")
-library(automap)
-
-#detach("package:sp", unload = TRUE)
-#install.packages("sp", dep = TRUE)
-require (sp)
-library(sp)
-
-#install.packages("USAboundaries")
-library(USAboundaries)
-
-#install.packages("sf")
-library(sf)
-
-#install.packages("rgeos")
-library(rgeos)
-
-#install.packages("raster")
-library(raster)
-
-#install.packages("rgdal")
-library(rgdal)
-
-#install.packages("maptools")
-library(maptools)
-
-#install.packages("PBSmapping")
-library(PBSmapping)
-
-library(cluster)
-library(factoextra)
-library(FactoMineR)
-library(viridis)
-library(SimDesign)
-library(Metrics)
-library(MLmetrics)
-
-
 ##### LOAD SOURCES #####
-source("../landsat-calibration/funcoes.R")
-source("../landsat-calibration/graficos.R")
-
-#### SET DIRECTORIES ####
-# Set root directory
-wd_root <- "../"
-
-# Imports folder (store all import files here)
-wd_imports <- paste0(wd_root,"/imports/")
-
-# Exports folder (save all figures, tables here)
-wd_exports <- paste0(wd_root,"/exports/")
-
-wd_figures <- paste0(wd_exports, "/ssc-figures/")
-wd_exports_gc <- paste0(wd_exports,"/ssc-gc-plots/")
-wd_station_standalone <- paste0(wd_exports, "/ssc-station-vs-standalone-models/")
-wd_standalone_models <- paste0(wd_exports, "/ssc-standalone-models/")
-wd_standalone_figures <- paste0(wd_standalone_models, "/ssc-standalone-figures/")
-wd_autocorrelation <- paste0(wd_exports, "/ssc-autocorrelation/")
-
-# Create folders within root directory to organize outputs if those folders do not exist
-export_folder_paths <- c(wd_exports, wd_figures, wd_exports_gc,wd_station_standalone, 
-                         wd_standalone_models, wd_standalone_figures, wd_autocorrelation)
-
-for(i in 1:length(export_folder_paths)){
-     path_sel <- export_folder_paths[i]
-     if(!dir.exists(path_sel)){
-          dir.create(path_sel)}
-}
-
-#### INITIALIZE MAP DATA FOR TAQUARI ####
-setwd (wd_imports)
-
-# set projection for states shapefile
-projection <- CRS("+proj=longlat +datum=WGS84 +no_defs")
-
-# import taquari provinces
-taquari <- read_sf(dsn = "shape/estacoes_sed_gee_taquari.shp", layer = "estacoes_sed_gee_taquari")
-taquari_geom <- st_geometry(taquari)
-# attributes(taquari_geom)
-
-# convert shapefile to Spatial class
-taquari <- as(taquari, 'Spatial')
-taquari <- spTransform(taquari, projection)
+source("../landsat-calibration/libraries.R")
+source("../landsat-calibration/config.R")
+source("../landsat-calibration/functions.R")
+source("../landsat-calibration/data_treatment.R")
+source("../landsat-calibration/plot.R")
+source("../landsat-calibration/clustering.R")
+source("../landsat-calibration/model.R")
 
 #### IMPORT AND CLEAN -- LANDSAT DATA ####
 set.seed(1)
-# raw continuous data for regression
 
 # Import landsat spectral data from each site of interest
-#ls_raw <- fread("gee/table1_taquari_surface.csv")
-ls_raw <- fread("gee/table1_taquari_surface.csv")
-
-###### Coloque para a coluna site_no como taquari, mas acho que vamos precisar colocar
-###### o nome da esta??o na hora de exportar os dados do GEE. (n?o tenho certeza disso ainda)
-ls_raw_1 <- 
-     na.omit(ls_raw[,
-        ':='(site_no = as.character(site_no), # Rename columns for simplicity
-          station_nm = station_nm,
-          B1 = B1_median,
-          B2 = B2_median,
-          B3 = B3_median,
-          B4 = B4_median,
-          B5 = B5_median,
-          B6 = B6_median,
-          B7 = B7_median,
-          nd52 = nd_median,
-          num_pix = B2_count,
-          landsat_dt = dmy(date)
-     )], cols = c('B1','B2','B3','B4','B5','B7'))[
-          B1 > 0 & B2 > 0 & B3 > 0 & B4 > 0 & B5 > 0 & B7 > 0][
-               ,':='( 
-                    # add new columns with band ratios
-                    ##### Removi as colunas snow_ice_qa_3km e cloud_qa_3km para funcionar. Temos que verificar se vamos 
-                    #### precisar dessas colunas depois
-                    B2.B1 = B2/B1,
-                    B3.B1 = B3/B1,
-                    B4.B1 = B4/B1,
-                    B5.B1 = B5/B1,
-                    B7.B1 = B7/B1,
-                    B3.B2 = B3/B2,
-                    B4.B2 = B4/B2,
-                    B5.B2 = B5/B2,
-                    B7.B2 = B7/B2,
-                    B4.B3 = B4/B3,
-                    B5.B3 = B5/B3,
-                    B7.B3 = B7/B3,
-                    B5.B4 = B5/B4,
-                    B7.B4 = B7/B4,
-                    B7.B5 = B7/B5,
-                    B1.2 = B1^2,
-                    B2.2 = B2^2,
-                    B3.2 = B3^2,
-                    B4.2 = B4^2,
-                    B5.2 = B5^2,
-                    B7.2 = B7^2,
-                    Latitude = lat,
-                    Longitude = lon,
-                    sensor = ifelse(grepl('LT',`system:index`),'Landsat 5','Landsat 7'))
-          ][ 
-               # select only columns of interest
-               ,.(station_nm, sensor, site_no, Latitude,Longitude, num_pix, landsat_dt,
-                  B1,B2,B3,B4,B5,B6,B7,B2.B1,B2.B1,B3.B1,B4.B1,B5.B1,B7.B1,B3.B2,B4.B2,B5.B2,
-                  B7.B2,B4.B3,B5.B3,B7.B3,B5.B4,B7.B4,B7.B5,B1.2,B2.2,B3.2,B4.2,B5.2,B7.2,
-                  nd52,cloud_cover
-               )]
+ls_sr_data <- importLandsatSurfaceReflectanceData()
 
 ## Identify sites with too few Landsat measurements to be reliable
 
 # Calculate number of satellite samples, per site
-n_sat_samples <- ls_raw_1[,.(N_samples = .N), by = .(station_nm)]
+n_sat_samples <- ls_sr_data[,.(N_samples = .N), by = .(station_nm)]
 
 #### IMPORT AND CLEAN -- IN SITU DATA ####
-
-# IMPORTAR DADOS IN SITU
-taquari_insitu_raw <- fread('taquari_insitu.csv') [, 'site_no' := as.character(site_no)]
+insitu_data <- importInSituData()
 
 #Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000
 #taquari_insitu_raw <- taquari_insitu_raw[site_no == 66845000] 
 
-taquari_insitu_site_nos <- unique(taquari_insitu_raw[!is.na(station_nm),station_nm])
+insitu_data_site_nos <- unique(insitu_data[!is.na(station_nm),station_nm])
 
 #### JOIN LANDSAT AND IN SITU DATA, WITH LAG OF UP TO 10 DAYS, RESTRICT TO < 3 DAYS ####
 ## Join Landsat data with in situ data, allowing for as much as a 10-day lead/lag
 # Join Landsat data with in situ data
 lag_days <- 8
-# taquari_insitu_raw <- setDT(ls_clean)[all_acy_insitu_daily_mean, roll = lag_days][ # uni-directional join
-ls_insitu_raw <- setDT(ls_raw_1)[, ':='( 
-             match_dt_start = landsat_dt - lag_days,
-             match_dt_end = landsat_dt + lag_days)
-        ][
-             taquari_insitu_raw[,':='( match_dt = dmy(sample_date) )
-        ], 
-             ####falta incluir a estacao
-             on = .(station_nm == station_nm, match_dt_start <= match_dt, match_dt_end >= match_dt)
-        ][ 
-             # bi-directional join
-             !is.na(B1)
-        ][ # removes days with in situ SSC but no Landsat image
-             ,lag_days := as.numeric(difftime(dmy(sample_date),landsat_dt),'days')
-        ][
-          # Add Log10 SSC, squared cols, and remove no values, too cold (B6 < 269) values
-          as.double(ConcentracaoMatSuspensao) > 0,
-          ':='(
-            log10_SSC_mgL = log10(ConcentracaoMatSuspensao),
-            # log10_SSC_mgL = ln(ConcentracaoMatSuspensao),
-              B1.2 = B1^2,
-               B2.2 = B2^2,
-               B3.2 = B3^2,
-               B4.2 = B4^2,
-               B5.2 = B5^2,
-               B7.2 = B7^2
-          )
-        ][
-          #retornar esse valor
-          !is.na(log10_SSC_mgL) & B6 > 0
-        ]
+ls_sr_insitu_data <- joinSRInSituData(ls_sr_data, insitu_data, lagdays)
 
 #### REGRESSION VARIABLES ####
 # Select explanatory variables (regressors) for mulitple regression model
-regressors_no_site <- c('B1', 'B2', 'B3', 'B4', 'B5', # raw bands
-                        'B2.B1', 'B3.B1', 'B4.B1', 'B5.B1' , # band ratios
-                        'B3.B2', 'B4.B2', 'B5.B2', 'B4.B3', 'B5.B3', 'B5.B4')
-regressors_all <- c('B1', 'B2', 'B3', 'B4', 'B5', # raw bands
-                    'B1.2', 'B2.2', 'B3.2', 'B4.2', 'B5.2', # squared bands
-                    'site_no', # no clear way to add categorical variables
-                    'B2.B1', 'B3.B1', 'B4.B1', 'B5.B1', # band ratios
-                    'B3.B2', 'B4.B2', 'B5.B2',
-                    'B4.B3', 'B5.B3', 'B5.B4')
+regressors_no_site <- getRegressorsNoSite();
+regressors_all <- getRegressorsAll()
 
 # Select regressors - bands and band ratios
 regressors_primary <- c(regressors_no_site, 'B4.B3.B1') # all regressors
@@ -322,64 +45,26 @@ regressors_primary <- c(regressors_no_site, 'B4.B3.B1') # all regressors
 # ls_insitu_raw <- ls_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
 # ls_raw_1 <- ls_raw_1[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
 # taquari_insitu_raw <- taquari_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
-ls_insitu_raw <- ls_insitu_raw[(site_no == 66845000)]
-ls_raw_1 <- ls_raw_1[( site_no == 66845000)]
-taquari_insitu_raw <- taquari_insitu_raw[( site_no == 66845000)]
+ls_sr_data <- ls_sr_data[( site_no == 66845000)]
+insitu_data <- insitu_data[( site_no == 66845000)]
+ls_sr_insitu_data <- ls_sr_insitu_data[(site_no == 66845000)]
 
 # Select minimum lead/lag row
-setkey(ls_insitu_raw[,abs_lag_days := abs(lag_days)], abs_lag_days)
-ls_insitu_raw <- ls_insitu_raw[, .SD[1], .(site_no, sample_date)]
+setkey(ls_sr_insitu_data[,abs_lag_days := abs(lag_days)], abs_lag_days)
+ls_sr_insitu_data <- ls_sr_insitu_data[, .SD[1], .(site_no, sample_date)]
 
-fwrite(ls_insitu_raw,paste0(wd_exports,''))
-station_summary <- plotDataSet(ls_raw_1, taquari_insitu_raw, ls_insitu_raw)
-
-station_summary <- station_summary[, ':='(
-    maxSSCInsitu=max(taquari_insitu_raw$ConcentracaoMatSuspensao),
-    minSSCInsitu=min(taquari_insitu_raw$ConcentracaoMatSuspensao),
-    maxSSCMatch=max(ls_insitu_raw$ConcentracaoMatSuspensao),
-    minSSCMatch=min(ls_insitu_raw$ConcentracaoMatSuspensao)
-  )]
+dataset_summary <- summarizeDataSet()
+plotDataSet(dataset_summary)
 
 #### RUN REGRESSION FOR CLUSTERING WITH 1-7 CLUSTERS -- TAKES ~45 MINS ####
 # https://en.wikipedia.org/wiki/Color_quantization something to check out
 set.seed(1)
-site_band_quantiles_all <- ls_raw_1[,':='(B4.B3.B1=B4.B3/B1)]
 
-#Renan - Diminui a qtd de variaveis utilizadas
-vis_nir_bands <- c('B1','B2','B3','B4','B2.B1')
+site_band_quantiles_all <- ls_sr_data[,':='(B4.B3.B1=B4.B3/B1)]
 
-site_band_scaling_all <- scale(site_band_quantiles_all[,..vis_nir_bands])
-cluster_var_combinations <- Map(as.data.frame, sapply(seq_along(vis_nir_bands), function(k) t(combn(vis_nir_bands,k))))
+#Segundo e terceiro parametros sao respectivamente limite minimo de clusters e limite max de variaves
+ccc_best <- runClusterAnalysis(site_band_quantiles_all, 1, 11)
 
-#Renan - Diminui o loop de 4 para 3 para funcionar com a quantidade de variaveis
-for(i in 3:length(vis_nir_bands)){
-     cluster_var_k_sel <- cluster_var_combinations[[i]]
-     for(k in 1:nrow(cluster_var_k_sel)){
-          print(paste0(i, " ", k))
-          cluster_var_sel <- c(as.matrix(cluster_var_k_sel[k,]))
-          
-          cluster_var_label <- paste(cluster_var_sel, collapse = "_")
-          #Renan - Alterei os parÃ¢metros do nbclust para rodar com a qdt de registros disponiveis min.nc e max.nc
-          ccc_result <- data.table(cbind(cluster_var_label, i, c(1:5), NbClust(site_band_scaling_all[,cluster_var_sel],
-                                                                               min.nc=2, max.nc=4, index="ccc", method="kmeans")$All.index))
-          print(ccc_result)
-          colnames(ccc_result) <- c('variables','nvars','nclusters','ccc')
-          if(k == 1 & i == 3){
-               ccc_master <- ccc_result
-          }else{
-               ccc_master <- rbind(ccc_master, ccc_result)
-          }
-          if(k%%100 == 0){
-               print(ccc_result)
-          }
-     }
-}
-
-ccc_analysis <- ccc_master[,':='(nvars = as.numeric(nvars), nclusters = as.numeric(nclusters), ccc = as.numeric(ccc))]
-
-#Renan - Alterei o parametro da melhor configuracao para o kmeans, para retornar algum dados 
-#Renan - Desabilitar o clustering para usar somente a estacao coxim
-ccc_best <- ccc_analysis[nclusters == 1 & nvars < 11 ][, .(mean_ccc = mean(ccc, na.rm = T)), by = variables][order(-mean_ccc)]
 
 #### Nao precisamos desse grafico por enquanto
 # ccc_plot <- ggplot(ccc_analysis, aes(x = factor(nclusters), y = ccc, color = factor(nvars))) + 
@@ -409,11 +94,11 @@ clustering_vars <- unlist(strsplit(as.character(ccc_best[1,'variables']),'_')) #
 # clustering_vars <- c('B1','B4','B2.B1','B3.B1')
 # Compute number of in situ-landsat pairs per station
 # Renan - Removi o filtro abs_lag_days < 3 para retornar algum registros, esse dado esta estranho no tabela
-n_insitu_samples_bySite <- ls_insitu_raw[!is.na(log10_SSC_mgL) & abs_lag_days <= 8,.(N_insitu_samples = .N), by = .(site_no)]
+n_insitu_samples_bySite <- ls_sr_insitu_data[!is.na(log10_SSC_mgL) & abs_lag_days <= 8,.(N_insitu_samples = .N), by = .(site_no)]
 # Compute band median at each site for clustering variables
 # setkey(n_insitu_samples_bySite,site_no)
 # Renan -  ls_raw_1 eh o ls_clean
-setkey(ls_raw_1,site_no)
+setkey(ls_sr_data,site_no)
 
 write_csv(site_band_quantiles_all, paste0(wd_exports,'all_sts_band_medians.csv'))
 
@@ -424,6 +109,8 @@ ssc_model_cl_list <- rep(list(NA), 1)
 ssc_cluster_color_plot_list <- rep(list(NA), 1)
 ssc_cluster_false_color_plot_list <- rep(list(NA), 1)
 
+
+#TODO Refatornado aqui
 for(i in c(1:1)){ # test different cluster numbers
      # for(i in 5){ # test different cluster numbers
      
@@ -461,10 +148,10 @@ for(i in c(1:1)){ # test different cluster numbers
      
      ## Add cluster group as column to ls-insitu matched data.table
      ## Renan de match_name para site_no
-     setkey(ls_insitu_raw, landsat_dt)
+     setkey(ls_sr_insitu_data, landsat_dt)
      #setkey(clustered_sites, landsat_dt)
      #Renan - Fixando 1 cluster
-     ls_insitu_cl <- ls_insitu_raw[
+     ls_insitu_cl <- ls_sr_insitu_data[
           ,':='(cluster_sel = 1,
                 # # Categorize SSC value as one of selected categories
                 ssc_category = cut(10^log10_SSC_mgL, 
@@ -578,8 +265,10 @@ for(i in c(1:1)){ # test different cluster numbers
      ggsave(ssc_cluster_iterate_plot_holdout, filename = paste0(wd_exports, 'ssc_', cluster_col_name, '_iterate_plot_holdout.png'), 
             width = 7, height = 7)
      
-     landsat5 <- ls_raw_1[sensor=='Landsat 5' & landsat_dt<"2009-12-31"]
-     landsat7 <- ls_raw_1[sensor=='Landsat 7' & landsat_dt>"2009-12-31"]
+     
+     #Removendo imagens sobrepostas do landsat 5 e landsat 7
+     landsat5 <- ls_sr_data[sensor=='Landsat 5' & landsat_dt<"2009-12-31"]
+     landsat7 <- ls_sr_data[sensor=='Landsat 7' & landsat_dt>"2009-12-31"]
      
      landsat <- rbind(landsat5, landsat7)
      
