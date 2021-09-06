@@ -355,4 +355,11 @@ get_sscPlot <- function(ssc_data,ssc_title,density_yn, validation){
         return(ssc_plot)
 }
 
-
+##TODO - Corrigir 
+predictSSC <- function(landsat_serie, regressors_all){
+    regressors_sel <- regressors_all[-which(regressors_all == 'site_no')]
+    matrix <- data.matrix(landsat_serie[,regressors_sel])
+    glm_pred <- cbind(landsat_serie, predict=predict(object=ssc_model, newx = matrix,  s = "lambda.min", type="response"))
+   
+    return(glm_pred)
+}

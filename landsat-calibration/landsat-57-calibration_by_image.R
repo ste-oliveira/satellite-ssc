@@ -32,22 +32,15 @@ insitu_data_site_nos <- unique(insitu_data[!is.na(station_nm),station_nm])
 lag_days <- 8
 ls_sr_insitu_data <- joinSRInSituData(ls_sr_data, insitu_data, lagdays)
 
-#### REGRESSION VARIABLES ####
-# Select explanatory variables (regressors) for mulitple regression model
-regressors_no_site <- getRegressorsNoSite();
-regressors_all <- getRegressorsAll()
-
-# Select regressors - bands and band ratios
-regressors_primary <- c(regressors_no_site, 'B4.B3.B1') # all regressors
 
 ##### ESCOLHER A ESTACAO PARA TESTAR OS MODELOS ####
 # # #Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000, Coxim - 66870000
-# ls_insitu_raw <- ls_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
-# ls_raw_1 <- ls_raw_1[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
-# taquari_insitu_raw <- taquari_insitu_raw[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
-ls_sr_data <- ls_sr_data[( site_no == 66845000)]
-insitu_data <- insitu_data[( site_no == 66845000)]
-ls_sr_insitu_data <- ls_sr_insitu_data[(site_no == 66845000)]
+insitu_data <- insitu_data[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
+ls_sr_data <- ls_sr_data[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
+ls_sr_insitu_data <- ls_sr_insitu_data[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
+# ls_sr_data <- ls_sr_data[( site_no == 66845000)]
+# insitu_data <- insitu_data[( site_no == 66845000)]
+# ls_sr_insitu_data <- ls_sr_insitu_data[(site_no == 66845000)]
 
 # Select minimum lead/lag row
 setkey(ls_sr_insitu_data[,abs_lag_days := abs(lag_days)], abs_lag_days)
@@ -63,33 +56,7 @@ set.seed(1)
 site_band_quantiles_all <- ls_sr_data[,':='(B4.B3.B1=B4.B3/B1)]
 
 #Segundo e terceiro parametros sao respectivamente limite minimo de clusters e limite max de variaves
-ccc_best <- runClusterAnalysis(site_band_quantiles_all, 1, 11)
-
-
-#### Nao precisamos desse grafico por enquanto
-# ccc_plot <- ggplot(ccc_analysis, aes(x = factor(nclusters), y = ccc, color = factor(nvars))) + 
-#      geom_boxplot() +
-#      # geom_point() + 
-#      # scale_color_fivethirtyeight() +
-#      season_facet + 
-#      theme(legend.position = 'right') + 
-#      labs(
-#           x = 'Number of clusters',
-#           y = 'Cubic clustering criterion',
-#           color = 'Number of variables'
-#      )
-# 
-# ggsave(ccc_plot, filename = paste0(wd_exports,'ccc_optimize_plot.png'), width = 7, height = 7)
-
-# Calculate k-means cluster based on all regressors at all sites
-# # Using raw band and band ratio values
-# Select colors for plotting
-#cl_colors <- brewer.pal(name = 'Paired',n=12)
-
-# Select variables to use for clustering
-# clustering_vars <- c('B1','B4','B2.B1','B3.B1', 'B4.B3.B1')
-# Renan - Selecionar variaveis
-clustering_vars <- unlist(strsplit(as.character(ccc_best[1,'variables']),'_')) # based on optimal cluster vars from ccc analysis
+clustering_vars <- runClusterAnalysis(site_band_quantiles_all, 1, 11)
 
 # clustering_vars <- c('B1','B4','B2.B1','B3.B1')
 # Compute number of in situ-landsat pairs per station
@@ -109,246 +76,84 @@ ssc_model_cl_list <- rep(list(NA), 1)
 ssc_cluster_color_plot_list <- rep(list(NA), 1)
 ssc_cluster_false_color_plot_list <- rep(list(NA), 1)
 
-
 #TODO Refatornado aqui
 for(i in c(1:1)){ # test different cluster numbers
-     # for(i in 5){ # test different cluster numbers
+  # for(i in 5){ # test different cluster numbers
+  
+  n_centers <- c(1:1)[i]
+  cluster_col_name <- paste0('cluster_n',n_centers)
+  
+  clustered_sites <- runKMeansCluster(site_band_quantiles_all, clustering_vars, n_centers)
+  
+  ## Add cluster group as column to ls-insitu matched data.table
+  ## Renan de match_name para site_no
+  setkey(ls_sr_insitu_data, landsat_dt)
+  #setkey(clustered_sites, landsat_dt)
+  #TODO Renan - Fixando 1 cluster
+  ls_insitu_cl <- ls_sr_insitu_data[
+      ,':='(cluster_sel = 1,
+            # # Categorize SSC value as one of selected categories
+            ssc_category = cut(10^log10_SSC_mgL, 
+                               breaks = ssc_categories,
+                               labels = ssc_category_labels))][]
+  
+  # Select cluster for analysis
+  # # Generate median B,G,R, near-infrared for each SSC category and each cluster or site
+  # Renan - Removi o filtro abs_lag_days < 3 para retornar algum registros, esse dado esta estranho no tabela
+  ssc_category_color <- ls_insitu_cl[abs(lag_days) <= 8,
+                                    keyby = .(cluster_sel, ssc_category),
+                                    lapply(.SD, median,na.rm = T),
+                                    .SDcols = c('B1','B2','B3', 'B4')]
+  
+  # Renan - Removi todos NAS
+  ssc_category_color <-  ssc_category_color[!is.na(B1)]
+  
+  plotClusterSSCCategoryColor(ssc_category_color)
+  
+  # TODO Establish a holdout set for testing statistics
+  ls_insitu_cl <- getHoldout(ls_insitu_cl)
+  
+  # Generate calibration model for each cluster
+  ssc_model_cl_iterate <- getModels_lasso(ls_insitu_cl[abs_lag_days <= 8 & site_no %chin% n_insitu_samples_bySite[
+      N_insitu_samples > 1]$site_no],
+      #  .SD[sample(x = .N, 
+      #               size = min(.N,min(.N, 500)))], 
+      #  by = site_no], 
+      regressors_all)
+  ssc_model_cl_list[[i]] <- ssc_model_cl_iterate
+  # Predicted values from calibration model
+  ssc_model_cl_iterate_pred <- ssc_model_cl_iterate[[1]]
+  
+  # Calculate relative error and relative station bias for holdout set using selected cluster model
+  # Saves a histogram of all errors
+  # Saves a panel boxplot of station bias at each cluster, with each the model type on a different panel
+  ssc_model_cl_iterate_rerr_bias <- getErrorBias(ssc_model_cl_iterate_pred, paste0('ssc_model_rerr_', cluster_col_name))
+  ssc_model_cl_iterate_rerr <- ssc_model_cl_iterate_rerr_bias[[1]]
+  
+  # ssc_model_cl_iterate_rmse <- getRMSE(ssc_model_cl_iterate_pred)
+  plotRelativeError(ssc_model_cl_iterate_rerr) 
      
-     n_centers <- c(1:1)[i]
-     
-     cluster_col_name <- paste0('cluster_n',n_centers)
-     # Calculate k-means cluster based on all regressors at all sites
-     # # Using raw band and band ratio values
-     site_band_scaling <- scale(site_band_quantiles_all[,..clustering_vars])
-     clusters_calculated <- kmeans(site_band_scaling, centers = n_centers, nstart = 1000, iter.max = 10000)
-     
-     clusters_calculated_list[[i]] <- clusters_calculated
-     # , algorithm = 'MacQueen'
-     
-     # Compute cluster centers
-     cluster_centers <- clusters_calculated$centers
-     
-     # Assign cluster to each site
-     site_band_quantiles_all$cluster <- clusters_calculated$cluster
-     clustered_sites <- site_band_quantiles_all[,.(landsat_dt,cluster)]
-     
-     write_csv(site_band_quantiles_all,paste0(wd_exports,'site_band_quantiles_n',i,'.csv'))
-     
-     # TYPICAL RIVER SEDIMENT COLOR AT DIFFERENT CLUSTERS
-     # Select SSC categories for plotting
-     # ssc_categories <- c(0,25,50,100,250,500,750,1000,1500, 1e6)
-     ssc_categories <- c(0,250,500,750,1000, 1500)
-     # ssc_categories <- c(0,50,100,200,500,1e6)
-     # ssc_categories <- c(0,10,25,50,75,100,150,200,250,300,350, 400, 450, 500,600, 700, 800,900,1000,1100,1500, 1e6)
-     
-     # Generate SSC labels as 'low value' - 'high value'
-     ssc_category_labels <- paste0(ssc_categories[-length(ssc_categories)],'-',c(ssc_categories[-1]))
-     # Make highest SSC category "> highest value"
-     ssc_category_labels[length(ssc_category_labels)] <- paste0('> ', ssc_categories[length(ssc_category_labels)])
-     
-     ## Add cluster group as column to ls-insitu matched data.table
-     ## Renan de match_name para site_no
-     setkey(ls_sr_insitu_data, landsat_dt)
-     #setkey(clustered_sites, landsat_dt)
-     #Renan - Fixando 1 cluster
-     ls_insitu_cl <- ls_sr_insitu_data[
-          ,':='(cluster_sel = 1,
-                # # Categorize SSC value as one of selected categories
-                ssc_category = cut(10^log10_SSC_mgL, 
-                                   breaks = ssc_categories,
-                                   labels = ssc_category_labels))][]
-     
-     # Select cluster for analysis
-     # # Generate median B,G,R, near-infrared for each SSC category and each cluster or site
-     # Renan - Removi o filtro abs_lag_days < 3 para retornar algum registros, esse dado esta estranho no tabela
-     ssc_category_color <- ls_insitu_cl[abs(lag_days) <= 8,
-                                        keyby = .(cluster_sel, ssc_category),
-                                        lapply(.SD, median,na.rm = T),
-                                        .SDcols = c('B1','B2','B3', 'B4')]
-     
-     # Renan - Removi todos NAS
-     ssc_category_color <-  ssc_category_color[!is.na(B1)]
-     
-     # Create true-color and false-color plots of 'typical' river color for each SSC category at each cluster group
-     for(j in 1:2){
-          color_sel <- c('true_color','false_color')[j]
-          # raster_color_types <- c(geom_raster(aes(fill = rgb(B3_median/3000,B2_median/3000,B1_median/3000))), # true color
-          #                         geom_raster(aes(fill = rgb(B4_median/4000,B3_median/4000,B2_median/4000))) # false color))
-          # data.table version
-          raster_color_types <- c(geom_raster(aes(fill = rgb(B3/3000,B2/3000,B1/3000))), # true color
-                                  geom_raster(aes(fill = rgb(B4/4000,B3/4000,B2/4000))) # false color)
-          )
-          
-          cluster_ssc_category_color_plot <- 
-               ggplot(ssc_category_color, aes(x = as.factor(cluster_sel), y = ssc_category)) +
-               # ggplot(ssc_category_color, aes(x = reorder(paste0(cluster_sel, ' ', site_no), cluster_sel), y = ssc_category)) + # for by site
-               raster_color_types[j] +
-               scale_fill_identity() +
-               theme_clean() + 
-                theme(
-                    axis.text.x = element_blank(),
-                    axis.ticks = element_blank(),
-                    axis.text.y = element_blank(),
-                    panel.grid.minor = element_blank(),
-                    panel.grid.major.y = element_blank(),
-                    panel.grid.major.x = element_blank(),
-                    plot.background = element_blank()
-              )+
-            geom_text( aes(label =paste(ssc_category,"(mg/L)")), color="gray", size=2.5)
-               # scale_x_continuous(expansion(add = c(0,0))) + 
-               # scale_y_discrete(expansion(mult = c(0,0))) +
-               # theme(axis.text.x = element_text(angle = 90)) + 
-               
-            if(j == 1){
-              cluster_ssc_category_color_plot <- cluster_ssc_category_color_plot + labs(
-                y = 'Concentração de Sedimentos (mg/L)',
-                x = 'Cor Típica do Rio (Cor Verdadeira)'
-              )
-            }else{
-              cluster_ssc_category_color_plot <- cluster_ssc_category_color_plot + labs(
-                    y = 'Concentração de Sedimentos (mg/L)',
-                    x = 'Cor Típica do Rio (Falsa Cor)'
-               )
-            }
-          
-          ggsave(cluster_ssc_category_color_plot, filename = paste0(wd_figures, cluster_col_name,'_ssc_category_color_plot_',color_sel,'.pdf'),
-                 width = 3, height = 3.4, useDingbats = F)
-          ggsave(cluster_ssc_category_color_plot, filename = paste0(wd_figures, cluster_col_name,'_ssc_category_color_plot_',color_sel,'.png'),
-                 width = 3, height = 3.4)
-          if(j == 1){
-               ssc_cluster_color_plot_list[[i]] <- cluster_ssc_category_color_plot
-          }else{
-               ssc_cluster_false_color_plot_list[[i]] <- cluster_ssc_category_color_plot
-          }
-     }
-     
-     # Establish a holdout set for testing statistics
-     
-     ls_insitu_cl <- getHoldout(ls_insitu_cl)
-     # Generate calibration model for each cluster
-     ssc_model_cl_iterate <- getModels_lasso(ls_insitu_cl[abs_lag_days <= 8 & site_no %chin% n_insitu_samples_bySite[
-          N_insitu_samples > 1]$site_no],
-          #  .SD[sample(x = .N, 
-          #               size = min(.N,min(.N, 500)))], 
-          #  by = site_no], 
-          regressors_all)
-     
-     ssc_model_cl_list[[i]] <- ssc_model_cl_iterate
-     # Predicted values from calibration model
-     ssc_model_cl_iterate_pred <- ssc_model_cl_iterate[[1]]
-     # Calculate relative error and relative station bias for holdout set using selected cluster model
-     # Saves a histogram of all errors
-     # Saves a panel boxplot of station bias at each cluster, with each the model type on a different panel
-     ssc_model_cl_iterate_rerr_bias <- getErrorBias(ssc_model_cl_iterate_pred, paste0('ssc_model_rerr_', cluster_col_name))
-     ssc_model_cl_iterate_rerr <- ssc_model_cl_iterate_rerr_bias[[1]]
-     
-     # ssc_model_cl_iterate_rmse <- getRMSE(ssc_model_cl_iterate_pred)
-     
-     # Prepare relative error for plotting
-     rel_error_annotate <- data.frame(rel_error = 
-                                           paste0('Erro Relativo = ', 
-                                                  round(ssc_model_cl_iterate_rerr[,.(mape_gl_ind,mape_cl_ind,mape_st_ind)],2))[2]) %>% 
-          mutate(holdout25 = c('holdout'), SSC_mgL = 50, pred = 650)
-     
-    
-     rsme <- paste0('RSME= ', round(rmse(10^ssc_model_cl_iterate_pred[,log10_SSC_mgL] ,10^ssc_model_cl_iterate_pred[,pred_cl ]),2))
-     r2 <- paste0('R2= ', round(R2_Score(10^ssc_model_cl_iterate_pred[,pred_cl], 10^ssc_model_cl_iterate_pred[,log10_SSC_mgL]),2))
-     
-      # Plot actual vs. predicted for holdout. Annotate with RMSE.
-     ssc_cluster_iterate_plot_holdout <- get_sscPlot(ssc_model_cl_iterate_pred,"byCluster",'no','no') +
-       geom_text(aes(x = 50, y = 650, label = rsme), hjust = 0, vjust = 0, size=5, color="#000000")+
-       geom_text(aes(x = 50, y = 620, label = r2), hjust = 0, vjust = 0, size=5, color="#000000")
-     
-     # SAVE FIGURE
-     # ggsave(ssc_cluster_iterate_plot_holdout, filename = paste0('ssc_', cluster_col_name, '_iterate_plot_holdout.pdf'), useDingbats = F, 
-     #        width = 6, height = 7)
-     ggsave(ssc_cluster_iterate_plot_holdout, filename = paste0(wd_exports, 'ssc_', cluster_col_name, '_iterate_plot_holdout.png'), 
-            width = 7, height = 7)
-     
-     
-     #Removendo imagens sobrepostas do landsat 5 e landsat 7
-     landsat5 <- ls_sr_data[sensor=='Landsat 5' & landsat_dt<"2009-12-31"]
-     landsat7 <- ls_sr_data[sensor=='Landsat 7' & landsat_dt>"2009-12-31"]
-     
-     landsat <- rbind(landsat5, landsat7)
-     
-     
-     ssc_model <- ssc_model_cl_iterate[2][[1]][[1]]
-     regressors_sel <- regressors_all[-which(regressors_all == 'site_no')]
-     matrix <- data.matrix(landsat[,..regressors_sel])
-     
-     glm_pred <- cbind(landsat, predict=predict(object=ssc_model, newx = matrix,  s = "lambda.min", type="response"))
-     stations_predicted <- data.frame(glm_pred[, .(station_nm), .(station_nm)])[,1]
-     cbPalette <- c("#0000FF", "#02b31a", "#FF0000")
-     
-     for(station in stations_predicted){
-        glm_pred_station <- glm_pred[station_nm==station]
-        
-        station_summary <- station_summary[, ':='(
-          serieImage = nrow(landsat)
-        )]
-        write_csv(station_summary, paste0(wd_exports, station,'_station_summary.csv'))
-        
-        # create data
-        landsat_dt <- glm_pred_station$landsat_dt
-        ssc_prediction <- 10^glm_pred_station$predict.1
-        data <- data.frame(landsat_dt,ssc_prediction, name=glm_pred_station$station_nm)
-        data <-data[order(data$landsat_dt),]
-        color <-  cbPalette[which(stations_predicted == station)]
-        
-        predictplot <-ggplot(data, aes(x=landsat_dt, y=ssc_prediction)) +
-            geom_line(color=color, size=0.4) +
-            geom_point(color=color, size=0.4)+
-            # geom_path()+
-            # geom_ma(linetype="solid", ma_fun = SMA, n = 10, color="#b15928",) +
-            # geom_smooth(method = "loess", color="#000000", size=0.5, fill="#ededd5")+
-            scale_x_date(date_labels = "%b/%y", date_breaks = "1 year", 
-                         limits = as.Date(c("1985-01-01","2020-01-01")), expand = c(0, 50))+
-            scale_y_continuous(breaks = seq(0, 1000, by = 50), limits = c(100, 500))+
-            ylab("Concentração de Sedimentoos Estimada (mg/L)")+
-            xlab(station)+
-            theme_clean()+
-            theme(axis.text.x=element_text(angle=60, hjust=1),
-                  plot.background = element_blank())
-        
-          ggsave(predictplot, filename = paste0(wd_exports, 'ssc_', station, '_predict.png'), 
-            width = 12, height = 4.5)
-        
-        
-          insitu_raw_station <- ssc_model_cl_iterate_pred[station_nm==station]
-          
-          insitu_raw_station <- insitu_raw_station[,':='(
-                                                   absoluteError = ae(10^log10_SSC_mgL, 10^pred_cl))]
-        
-          lagdaysError <- ggplot(insitu_raw_station) + 
-            geom_point(aes(x=lag_days, y=absoluteError),color = '#000000', fill="#FF0000", pch = 21, size=3)+
-            theme(
-              legend.position = c(.85, .85),
-              legend.key.size = unit(5, 'mm'),
-              legend.title = element_text(size=10), #change legend title font size
-              legend.text = element_text(size=8),
-              plot.background = element_blank())+
-            theme_clean()+
-            scale_y_continuous(breaks = seq(0, 500, by = 50), limits = c(0, 500))+
-            scale_x_continuous(breaks = seq(-9, 9, by = 1), limits = c(-9, 9))+
-            labs(
-              y = 'Erro Absoluto (mg/L)',
-              x = 'Lag Days'
-            ) 
-          
-          ggsave(lagdaysError, filename = paste0(wd_exports, 'ssc_', station, '_lagdays_error.png'), 
-                 width = 6, height = 5)
-      }
-    
-     
-     # Calculate model statistics
-     n_clusters_df <- data.frame(n_clusters = n_centers)
-     
-     if(i == 1){
-          cl_stats <- cbind(data.frame(ssc_model_cl_iterate_rerr),n_clusters_df)
-     }else{
-          cl_stats <- rbind(cl_stats,
-                            cbind(data.frame(ssc_model_cl_iterate_rerr),n_clusters_df))
-     }
+  #Removendo imagens sobrepostas do landsat 5 e landsat 7
+  landsat_serie <- removeLandsatOverlaidImages(landsat5, landsat7)
+  ssc_model <- ssc_model_cl_iterate[2][[1]][[1]]
+  
+  #TODO - Corrigir fun��o de predi��o 
+  #predictedSSC <- predictSSC(ssc_model, regressors_all)
+  
+  regressors_sel <- regressors_all[-which(regressors_all == 'site_no')]
+  matrix <- data.matrix(landsat_serie[,..regressors_sel])
+  predictedSSC <- cbind(landsat_serie, predict=predict(object=ssc_model, newx = matrix,  s = "lambda.min", type="response"))
+  
+  generatePredictedHistoricalSerieByStation(predictedSSC, landsat_serie)
+  
+  # Calculate model statistics
+  n_clusters_df <- data.frame(n_clusters = n_centers)
+  
+  if(i == 1){
+      cl_stats <- cbind(data.frame(ssc_model_cl_iterate_rerr), n_clusters_df)
+  }else{
+      cl_stats <- rbind(cl_stats,
+                        cbind(data.frame(ssc_model_cl_iterate_rerr),n_clusters_df))
+  }
 }
 

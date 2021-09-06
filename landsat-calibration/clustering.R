@@ -35,5 +35,52 @@ runClusterAnalysis <- function(site_band_scaling_all, clusters, vars){
    #Renan - Desabilitar o clustering para usar somente a estacao coxim
    ccc_best <- ccc_analysis[nclusters == clusters & nvars < vars][, .(mean_ccc = mean(ccc, na.rm = T)), by = variables][order(-mean_ccc)]
    
-   return(ccc_best)
+   #### Nao precisamos desse grafico por enquanto
+   # ccc_plot <- ggplot(ccc_analysis, aes(x = factor(nclusters), y = ccc, color = factor(nvars))) + 
+   #      geom_boxplot() +
+   #      # geom_point() + 
+   #      # scale_color_fivethirtyeight() +
+   #      season_facet + 
+   #      theme(legend.position = 'right') + 
+   #      labs(
+   #           x = 'Number of clusters',
+   #           y = 'Cubic clustering criterion',
+   #           color = 'Number of variables'
+   #      )
+   # 
+   # ggsave(ccc_plot, filename = paste0(wd_exports,'ccc_optimize_plot.png'), width = 7, height = 7)
+   
+   # Calculate k-means cluster based on all regressors at all sites
+   # # Using raw band and band ratio values
+   # Select colors for plotting
+   #cl_colors <- brewer.pal(name = 'Paired',n=12)
+   
+   # Select variables to use for clustering
+   # clustering_vars <- c('B1','B4','B2.B1','B3.B1', 'B4.B3.B1')
+   # Renan - Selecionar variaveis
+   clustering_vars <- unlist(strsplit(as.character(ccc_best[1,'variables']),'_')) # based on optimal cluster vars from ccc analysis
+   
+   return(clustering_vars)
+}
+
+runKMeansCluster <- function(site_band_quantiles_all, clustering_vars, n_centers){
+   
+   # Calculate k-means cluster based on all regressors at all sites
+   # # Using raw band and band ratio values
+   site_band_scaling <- scale(site_band_quantiles_all[,..clustering_vars])
+   clusters_calculated <- kmeans(site_band_scaling, centers = n_centers, nstart = 1000, iter.max = 10000)
+   
+   clusters_calculated_list[[i]] <- clusters_calculated
+   # , algorithm = 'MacQueen'
+   
+   # Compute cluster centers
+   cluster_centers <- clusters_calculated$centers
+   
+   # Assign cluster to each site
+   site_band_quantiles_all$cluster <- clusters_calculated$cluster
+   clustered_sites <- site_band_quantiles_all[,.(landsat_dt,cluster)]
+   
+   write_csv(site_band_quantiles_all,paste0(wd_exports,'site_band_quantiles_n',i,'.csv'))
+   
+   return(clustered_sites)
 }

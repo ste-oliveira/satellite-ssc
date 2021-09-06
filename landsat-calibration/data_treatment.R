@@ -117,3 +117,13 @@ summarizeDataSet <- function(){
         )]
         return(dataset)
 }
+
+removeLandsatOverlaidImages <- function(landsat5, landsat7){
+        #Removendo imagens sobrepostas do landsat 5 e landsat 7
+        landsat5 <- ls_sr_data[sensor=='Landsat 5' & landsat_dt<"2009-12-31"]
+        landsat7 <- ls_sr_data[sensor=='Landsat 7' & landsat_dt>"2009-12-31"]
+        
+        landsat_serie <- rbind(landsat5, landsat7)
+        
+        return(landsat_serie)
+}
