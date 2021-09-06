@@ -1,9 +1,9 @@
 
 plotDataSet <- function(dataset) { 
-   means.long<-melt(dataset[,.(image, insitu, match, station_nm)],id.vars="station_nm")
+   means.long<-melt(dataset[,.(image, insitu, match, site_no)],id.vars="site_no")
    
    # Grouped
-   n_sat_samples_histogram <-ggplot(means.long, aes(fill=variable, y=value, x=reorder(station_nm, -value))) + 
+   n_sat_samples_histogram <-ggplot(means.long, aes(fill=variable, y=value, x=reorder(site_no, -value))) + 
       geom_bar(position="dodge", stat="identity", width=0.5, size=0.2, colour="black")+
       theme_clean()+
       scale_y_continuous(breaks = seq(0, 700, by = 50))+
@@ -62,13 +62,13 @@ plotClusterSSCCategoryColor <- function(ssc_category_color){
       
       if(j == 1){
          cluster_ssc_category_color_plot <- cluster_ssc_category_color_plot + labs(
-            y = 'ConcentraÃ§Ã£o de Sedimentos (mg/L)',
-            x = 'Cor TÃ­pica do Rio (Cor Verdadeira)'
+            y = 'Concentração de Sedimentos (mg/L)',
+            x = 'Cor Típica do Rio (Cor Verdadeira)'
          )
       }else{
          cluster_ssc_category_color_plot <- cluster_ssc_category_color_plot + labs(
-            y = 'ConcentraÃ§Ã£o de Sedimentos (mg/L)',
-            x = 'Cor TÃ­pica do Rio (Falsa Cor)'
+            y = 'Concentração de Sedimentos (mg/L)',
+            x = 'Cor Típica do Rio (Falsa Cor)'
          )
       }
       

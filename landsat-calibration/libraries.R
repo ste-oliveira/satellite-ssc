@@ -128,12 +128,12 @@ library(sf)
 #install.packages("rgeos")
 library(rgeos)
 
-#install.packages("raster")
-library(raster)
-
-#install.packages("rgdal")
-library(rgdal)
-
+# #install.packages("raster")
+# library(raster)
+# 
+# #install.packages("rgdal")
+# library(rgdal)
+# 
 #install.packages("maptools")
 library(maptools)
 
@@ -143,6 +143,6 @@ library(PBSmapping)
 library(cluster)
 library(factoextra)
 library(FactoMineR)
-library(viridis)
+# library(viridis)
 library(SimDesign)
 

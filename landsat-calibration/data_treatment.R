@@ -3,14 +3,15 @@
 importLandsatSurfaceReflectanceData <- function(l) { 
         # Import landsat spectral data from each site of interest
         #ls_raw <- fread("gee/table1_taquari_surface.csv")
-        ls_sr_raw <- fread("gee/table1_taquari_surface.csv")
+        ls_sr_raw <- fread("gee/pantanal_sr.csv")
         
         ###### Coloque para a coluna site_no como taquari, mas acho que vamos precisar colocar
         ###### o nome da esta??o na hora de exportar os dados do GEE. (n?o tenho certeza disso ainda)
         ls_sr_data <- 
                 na.omit(ls_sr_raw[,
-                ':='(site_no = as.character(site_no), # Rename columns for simplicity
-                station_nm = station_nm,
+                ':='(
+                site_no = as.character(Codigo), # Rename columns for simplicity
+                station_nm = Estacao,
                 B1 = B1_median,
                 B2 = B2_median,
                 B3 = B3_median,
@@ -20,7 +21,7 @@ importLandsatSurfaceReflectanceData <- function(l) {
                 B7 = B7_median,
                 nd52 = nd_median,
                 num_pix = B2_count,
-                landsat_dt = dmy(date)
+                landsat_dt = ymd(date)
                 )], cols = c('B1','B2','B3','B4','B5','B7'))[
                 B1 > 0 & B2 > 0 & B3 > 0 & B4 > 0 & B5 > 0 & B7 > 0][
                        ,':='( 
@@ -62,7 +63,11 @@ importLandsatSurfaceReflectanceData <- function(l) {
 } 
 
 importInSituData <- function(){
-        insitu_data <- fread('taquari_insitu.csv') [, 'site_no' := as.character(site_no)]
+        insitu_data <- fread('bap_insitu.csv')
+        insitu_data <- insitu_data[, ':=' (
+                site_no = as.character(EstacaoCodigo),
+                sample_date = Data
+                )]
         return(insitu_data)
 }
 
@@ -74,8 +79,7 @@ joinSRInSituData <- function(ls_sr_data, insitu_data, lagdays){
                 ][
                         insitu_data[,':='( match_dt = dmy(sample_date) )
                         ], 
-                        ####falta incluir a estacao
-                        on = .(station_nm == station_nm, match_dt_start <= match_dt, match_dt_end >= match_dt)
+                        on = .(site_no == site_no, match_dt_start <= match_dt, match_dt_end >= match_dt)
                 ][ 
                         # bi-directional join
                         !is.na(B1)
@@ -104,9 +108,9 @@ joinSRInSituData <- function(ls_sr_data, insitu_data, lagdays){
 summarizeDataSet <- function(){
         # Plot number of satellite samples per site as a histogram
         # Renan - Plotar número de amostras por estação
-        image <-  ls_sr_data[landsat_dt>="2005-01-01" & landsat_dt<="2019-12-31",.(image = .N), by = .(station_nm)][order(station_nm)]
-        insitu <- insitu_data[order(station_nm),.(insitu = .N), by = .(station_nm)]
-        match <- ls_sr_insitu_data[order(station_nm),.(match = .N), by = .(station_nm)]
+        image <-  ls_sr_data[landsat_dt>="2005-01-01" & landsat_dt<="2019-12-31",.(image = .N), by = .(site_no)][order(site_no)]
+        insitu <- insitu_data[order(site_no),.(insitu = .N), by = .(site_no)]
+        match <- ls_sr_insitu_data[order(site_no),.(match = .N), by = .(site_no)]
         
         dataset <- cbind(image, insitu[,c(2)], match[,c(2)])
         dataset <- dataset[, ':='(
@@ -118,12 +122,13 @@ summarizeDataSet <- function(){
         return(dataset)
 }
 
-removeLandsatOverlaidImages <- function(landsat5, landsat7){
+getLandsatHistoricalSerie <- function(ls_sr_data, insitu_data_site_nos){
+        landsat_stations <- ls_sr_data[site_no  %chin% insitu_data_site_nos]
         #Removendo imagens sobrepostas do landsat 5 e landsat 7
-        landsat5 <- ls_sr_data[sensor=='Landsat 5' & landsat_dt<"2009-12-31"]
-        landsat7 <- ls_sr_data[sensor=='Landsat 7' & landsat_dt>"2009-12-31"]
+        landsat_stations5 <- landsat_stations[sensor=='Landsat 5' & landsat_dt<"2009-12-31"]
+        landsat_stations7 <- landsat_stations[sensor=='Landsat 7' & landsat_dt>"2009-12-31"]
         
-        landsat_serie <- rbind(landsat5, landsat7)
+        landsat_serie <- rbind(landsat_stations5, landsat_stations7)
         
         return(landsat_serie)
 }

@@ -23,8 +23,7 @@ insitu_data <- importInSituData()
 
 #Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000
 #taquari_insitu_raw <- taquari_insitu_raw[site_no == 66845000] 
-
-insitu_data_site_nos <- unique(insitu_data[!is.na(station_nm),station_nm])
+insitu_data_site_nos <- unique(insitu_data[!is.na(site_no),site_no])
 
 #### JOIN LANDSAT AND IN SITU DATA, WITH LAG OF UP TO 10 DAYS, RESTRICT TO < 3 DAYS ####
 ## Join Landsat data with in situ data, allowing for as much as a 10-day lead/lag
@@ -32,13 +31,12 @@ insitu_data_site_nos <- unique(insitu_data[!is.na(station_nm),station_nm])
 lag_days <- 8
 ls_sr_insitu_data <- joinSRInSituData(ls_sr_data, insitu_data, lagdays)
 
-
 ##### ESCOLHER A ESTACAO PARA TESTAR OS MODELOS ####
 # # #Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000, Coxim - 66870000
-insitu_data <- insitu_data[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
-ls_sr_data <- ls_sr_data[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
-ls_sr_insitu_data <- ls_sr_insitu_data[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
-# ls_sr_data <- ls_sr_data[( site_no == 66845000)]
+# insitu_data <- insitu_data[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
+# ls_sr_data <- ls_sr_data[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
+# ls_sr_insitu_data <- ls_sr_insitu_data[(site_no == 66845000 | site_no == 66870000 | site_no == 66855000)]
+# # ls_sr_data <- ls_sr_data[( site_no == 66845000)]
 # insitu_data <- insitu_data[( site_no == 66845000)]
 # ls_sr_insitu_data <- ls_sr_insitu_data[(site_no == 66845000)]
 
@@ -62,6 +60,7 @@ clustering_vars <- runClusterAnalysis(site_band_quantiles_all, 1, 11)
 # Compute number of in situ-landsat pairs per station
 # Renan - Removi o filtro abs_lag_days < 3 para retornar algum registros, esse dado esta estranho no tabela
 n_insitu_samples_bySite <- ls_sr_insitu_data[!is.na(log10_SSC_mgL) & abs_lag_days <= 8,.(N_insitu_samples = .N), by = .(site_no)]
+
 # Compute band median at each site for clustering variables
 # setkey(n_insitu_samples_bySite,site_no)
 # Renan -  ls_raw_1 eh o ls_clean
@@ -76,7 +75,6 @@ ssc_model_cl_list <- rep(list(NA), 1)
 ssc_cluster_color_plot_list <- rep(list(NA), 1)
 ssc_cluster_false_color_plot_list <- rep(list(NA), 1)
 
-#TODO Refatornado aqui
 for(i in c(1:1)){ # test different cluster numbers
   # for(i in 5){ # test different cluster numbers
   
@@ -107,7 +105,6 @@ for(i in c(1:1)){ # test different cluster numbers
   
   # Renan - Removi todos NAS
   ssc_category_color <-  ssc_category_color[!is.na(B1)]
-  
   plotClusterSSCCategoryColor(ssc_category_color)
   
   # TODO Establish a holdout set for testing statistics
@@ -134,12 +131,11 @@ for(i in c(1:1)){ # test different cluster numbers
   plotRelativeError(ssc_model_cl_iterate_rerr) 
      
   #Removendo imagens sobrepostas do landsat 5 e landsat 7
-  landsat_serie <- removeLandsatOverlaidImages(landsat5, landsat7)
+  landsat_serie <- getLandsatHistoricalSerie(ls_sr_data, insitu_data_site_nos)
   ssc_model <- ssc_model_cl_iterate[2][[1]][[1]]
   
   #TODO - Corrigir função de predição 
   #predictedSSC <- predictSSC(ssc_model, regressors_all)
-  
   regressors_sel <- regressors_all[-which(regressors_all == 'site_no')]
   matrix <- data.matrix(landsat_serie[,..regressors_sel])
   predictedSSC <- cbind(landsat_serie, predict=predict(object=ssc_model, newx = matrix,  s = "lambda.min", type="response"))
