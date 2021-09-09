@@ -92,5 +92,3 @@ generatePredictedHistoricalSerieByStation <- function(predictedSSC, landsat_seri
              width = 6, height = 5)
    }
 }
-
-

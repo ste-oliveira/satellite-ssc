@@ -57,7 +57,7 @@ importLandsatSurfaceReflectanceData <- function(l) {
                        ,.(station_nm, sensor, site_no, Latitude,Longitude, num_pix, landsat_dt,
                           B1,B2,B3,B4,B5,B6,B7,B2.B1,B2.B1,B3.B1,B4.B1,B5.B1,B7.B1,B3.B2,B4.B2,B5.B2,
                           B7.B2,B4.B3,B5.B3,B7.B3,B5.B4,B7.B4,B7.B5,B1.2,B2.2,B3.2,B4.2,B5.2,B7.2,
-                          nd52,cloud_cover
+                          nd52,cloud_cover, cloud_qa_count
                        )]
         return(ls_sr_data)
 } 
