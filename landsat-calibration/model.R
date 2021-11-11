@@ -35,7 +35,6 @@ getModels_lasso <- function(data, regressors){
      cluster_funs <- list(rep(NA,length(subsets)))
      site_funs <- list(rep(NA,length(subsets)))
      
-     
      for(i in subsets){ # for individual cluster models
           regressors_sel <- regressors[-which(regressors == 'site_no')]
           lm_data_lm <- lm_data[ssc_subset == i] # only chooses sites within cluster
@@ -61,15 +60,17 @@ getModels_lasso <- function(data, regressors){
           glm_pred <- predict(ssc_lm, newx = as.matrix(lm_data_lm[,..regressors_sel]), type = "response", s = "lambda.min")
           lm_data$pred_cl[which(lm_data$ssc_subset == i)] <- glm_pred
 
-       
+          # 
           # print(paste0('RSME= ', rmse(lm_data_hold[,log10_SSC_mgL] , glm_pred)))
-          # print(paste0('R2= ', R2_Score(glm_pred, lm_data_hold[,log10_SSC_mgL])))
+          print(paste0('R2(',i,')= ', R2_Score(glm_pred, lm_data_hold[,log10_SSC_mgL])))
+          # print(paste0('R2 Convertido (',i,')= ', R2_Score(10^glm_pred, 10^lm_data_hold[,log10_SSC_mgL])))
+          
           # 
           
-          #plot(ssc_lm)
+          plot(ssc_lm)
           # lm_data$res_cl[which(lm_data$ssc_subset == i)] <- resid(ssc_lm)
      }
-     
+     print('')
      # Renan - Manter apenas a primeira abordagem para o congresso
      # lm_data$ssc_subset <- lm_data$cluster_sel # sites
      # lm_data$site_code <- lm_data$site_no
@@ -359,7 +360,7 @@ get_sscPlot <- function(ssc_data,ssc_title,density_yn, validation){
 predictSSC <- function(landsat_serie, regressors_all){
     regressors_sel <- regressors_all[-which(regressors_all == 'site_no')]
     matrix <- data.matrix(landsat_serie[,regressors_sel])
-    glm_pred <- cbind(landsat_serie, predict=predict(object=ssc_model, newx = matrix,  s = "lambda.min", type="response"))
+    glm_pred <- cbind(landsat_serie, predict=predict(object=ssc_model, newx = matrix,  s = "lambda.1se", type="response"))
    
     return(glm_pred)
 }

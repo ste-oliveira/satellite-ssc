@@ -93,9 +93,12 @@ plotRelativeError <- function(ssc_model_cl_iterate_rerr){
       mutate(holdout25 = c('holdout'), SSC_mgL = 50, pred = 650)
    
    
-   rsme <- paste0('RSME= ', round(Metrics::rmse(10^ssc_model_cl_iterate_pred[,log10_SSC_mgL] ,10^ssc_model_cl_iterate_pred[,pred_cl ]),2))
-   r2 <- paste0('R2= ', round(R2_Score(10^ssc_model_cl_iterate_pred[,pred_cl], 10^ssc_model_cl_iterate_pred[,log10_SSC_mgL]),2))
-   
+   #rsme <- paste0('RSME= ', round(Metrics::rmse(10^ssc_model_cl_iterate_pred[,log10_SSC_mgL] ,10^ssc_model_cl_iterate_pred[,pred_cl ]),2))
+   #r2 <- paste0('R2= ', round(R2_Score(10^ssc_model_cl_iterate_pred[,pred_cl], 10^ssc_model_cl_iterate_pred[,log10_SSC_mgL]),2))
+  
+    rsme <- paste0('RSME= ', round(Metrics::rmse(ssc_model_cl_iterate_pred[,log10_SSC_mgL] ,ssc_model_cl_iterate_pred[,pred_cl ]),2))
+    r2 <- paste0('R2= ', round(R2_Score(ssc_model_cl_iterate_pred[,pred_cl], ssc_model_cl_iterate_pred[,log10_SSC_mgL]),2))
+   # 
    # Plot actual vs. predicted for holdout. Annotate with RMSE.
    ssc_cluster_iterate_plot_holdout <- get_sscPlot(ssc_model_cl_iterate_pred,"byCluster",'no','no') +
       geom_text(aes(x = 50, y = 650, label = rsme), hjust = 0, vjust = 0, size=5, color="#000000")+

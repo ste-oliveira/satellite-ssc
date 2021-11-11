@@ -66,7 +66,8 @@ importInSituData <- function(){
         insitu_data <- fread('bap_insitu.csv')
         insitu_data <- insitu_data[, ':=' (
                 site_no = as.character(EstacaoCodigo),
-                sample_date = Data
+                sample_date = Data,
+                ConcentracaoMatSuspensao = as.double(ConcentracaoMatSuspensao)
                 )]
         return(insitu_data)
 }
@@ -122,13 +123,20 @@ summarizeDataSet <- function(){
         return(dataset)
 }
 
-getLandsatHistoricalSerie <- function(ls_sr_data, insitu_data_site_nos){
+getLandsatHistoricalSerieByStation <- function(ls_sr_data, insitu_data_site_nos){
         landsat_stations <- ls_sr_data[site_no  %chin% insitu_data_site_nos]
+     
+        return(getLandsatHistoricalSerie(landsat_stations))
+}
+
+
+getLandsatHistoricalSerie <- function(ls_sr_data){
         #Removendo imagens sobrepostas do landsat 5 e landsat 7
-        landsat_stations5 <- landsat_stations[sensor=='Landsat 5' & landsat_dt<"2009-12-31"]
-        landsat_stations7 <- landsat_stations[sensor=='Landsat 7' & landsat_dt>"2009-12-31"]
+        landsat_stations5 <- ls_sr_data[ls_sr_data$sensor.x=='Landsat 5' & ls_sr_data$landsat_dt.y<"2009-12-31", ]
+        landsat_stations7 <- ls_sr_data[ls_sr_data$sensor.x=='Landsat 7' & ls_sr_data$landsat_dt.y>"2009-12-31", ]
         
         landsat_serie <- rbind(landsat_stations5, landsat_stations7)
         
         return(landsat_serie)
 }
+

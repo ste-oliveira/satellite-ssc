@@ -6,7 +6,7 @@ runClusterAnalysis <- function(site_band_scaling_all, clusters, vars){
    cluster_var_combinations <- Map(as.data.frame, sapply(seq_along(vis_nir_bands), function(k) t(combn(vis_nir_bands,k))))
    
    #Renan - Diminui o loop de 4 para 3 para funcionar com a quantidade de variaveis
-   for(i in 4:length(vis_nir_bands)){
+   for(i in 2:length(vis_nir_bands)){
       cluster_var_k_sel <- cluster_var_combinations[[i]]
       for(k in 1:nrow(cluster_var_k_sel)){
          print(paste0(i, " ", k))
@@ -14,11 +14,11 @@ runClusterAnalysis <- function(site_band_scaling_all, clusters, vars){
          
          cluster_var_label <- paste(cluster_var_sel, collapse = "_")
          #Renan - Alterei os parÃ¢metros do nbclust para rodar com a qdt de registros disponiveis min.nc e max.nc
-         ccc_result <- data.table(cbind(cluster_var_label, i, c(4:10), NbClust(site_band_scaling_all[,cluster_var_sel],
-                                                                              min.nc=4, max.nc=10, index="ccc", method="kmeans")$All.index))
+         ccc_result <- data.table(cbind(cluster_var_label, i, c(2:4), NbClust(site_band_scaling_all[,cluster_var_sel],
+                                                                              min.nc=2, max.nc=4, index="ccc", method="kmeans")$All.index))
          print(ccc_result)
          colnames(ccc_result) <- c('variables','nvars','nclusters','ccc')
-         if(k == 1 & i == 4){
+         if(k == 1 & i == 2){
             ccc_master <- ccc_result
          }else{
             ccc_master <- rbind(ccc_master, ccc_result)
@@ -30,36 +30,7 @@ runClusterAnalysis <- function(site_band_scaling_all, clusters, vars){
    }
 
    ccc_analysis <- ccc_master[,':='(nvars = as.numeric(nvars), nclusters = as.numeric(nclusters), ccc = as.numeric(ccc))]
-
-   #https://support.sas.com/documentation/onlinedoc/v82/techreport_a108.pdf
-   #ccc_best <- ccc_analysis[nclusters == clusters & nvars < vars][, .(mean_ccc = mean(ccc, na.rm = T)), by = variables][order(-mean_ccc)]
-   ccc_best <- ccc_analysis[nclusters > clusters & nvars < vars][, .(mean_ccc = mean(ccc, na.rm = T)), by = variables][order(-mean_ccc)]
-
-      ### Nao precisamos desse grafico por enquanto
-   ccc_plot <- ggplot(ccc_analysis, aes(x = factor(nclusters), y = ccc, color = factor(nvars))) +
-        geom_boxplot() +
-        # geom_point() +
-        # scale_color_fivethirtyeight() +
-        theme(legend.position = 'right') +
-        labs(
-             x = 'Number of clusters',
-             y = 'Cubic clustering criterion',
-             color = 'Number of variables'
-        )
-
-   plot(ccc_plot)
-   # ggsave(ccc_plot, filename = paste0(wd_exports,'ccc_optimize_plot.png'), width = 7, height = 7)
-   
-   # Calculate k-means cluster based on all regressors at all sites
-   # # Using raw band and band ratio values
-   # Select colors for plotting
-   #cl_colors <- brewer.pal(name = 'Paired',n=12)
-   
-   # Select variables to use for clustering
-   # Renan - Selecionar variaveis
-   clustering_vars <- unlist(strsplit(as.character(ccc_best[1,'variables']),'_')) # based on optimal cluster vars from ccc analysis
-   
-   return(clustering_vars)
+   return(ccc_analysis)
 }
 
 runKMeansCluster <- function(site_band_quantiles_all, clustering_vars, n_centers){
@@ -67,7 +38,7 @@ runKMeansCluster <- function(site_band_quantiles_all, clustering_vars, n_centers
    # Calculate k-means cluster based on all regressors at all sites
    # # Using raw band and band ratio values
    site_band_scaling <- scale(site_band_quantiles_all[,..clustering_vars])
-   clusters_calculated <- kmeans(site_band_scaling, centers = n_centers, nstart = 20, iter.max = 50)
+   clusters_calculated <- kmeans(site_band_scaling, centers = n_centers, nstart = 1000, iter.max = 10000)
    
    clusters_calculated_list[[i]] <- clusters_calculated
    # , algorithm = 'MacQueen'
