@@ -1,7 +1,8 @@
 runClusterAnalysis <- function(site_band_scaling_all, clusters, vars){
    
    #Renan - Diminui a qtd de variaveis utilizadas
-   vis_nir_bands <- c('B1','B2','B3','B4','B2.B1','B3.B1','B4.B1','B3.B2','B4.B2','B4.B3','B4.B3.B1')
+   # vis_nir_bands <- c('B1','B2','B3','B4','B2.B1','B3.B1','B4.B1','B3.B2','B4.B2','B4.B3','B4.B3.B1')
+   vis_nir_bands <- c('B1','B2','B3')
    site_band_scaling_all <- scale(site_band_quantiles_all[,..vis_nir_bands])
    cluster_var_combinations <- Map(as.data.frame, sapply(seq_along(vis_nir_bands), function(k) t(combn(vis_nir_bands,k))))
    

@@ -1,10 +1,12 @@
 
 plotDataSet <- function(dataset) { 
-   means.long<-melt(dataset[,.(image, insitu, match, site_no)],id.vars="site_no")
-   
+   means.long<-melt(dataset[,.(image, insitu, match, station_nm)],id.vars="station_nm")
+
    # Grouped
-   n_sat_samples_histogram <-ggplot(means.long, aes(fill=variable, y=value, x=reorder(site_no, -value))) + 
-      geom_bar(position="dodge", stat="identity", width=0.5, size=0.2, colour="black")+
+   n_sat_samples_histogram <-ggplot(means.long, aes(fill=variable, y=value, x=reorder(station_nm, -value))) + 
+      geom_bar(position="dodge", stat="identity", width=0.9)+
+      geom_text(aes(label=value), position = position_dodge(width = 1),
+                vjust = -0.5, size = 3, colour="#777777")+
       theme_clean()+
       scale_y_continuous(breaks = seq(0, 700, by = 50))+
       scale_fill_manual(values = c("#a6cee3", "#1f78b4", "#b2df8a"), name = "Legenda", labels = c("Imagem Landsat 5/7", "Dados In Situ", "Match"),
@@ -14,7 +16,10 @@ plotDataSet <- function(dataset) {
          legend.key.size = unit(5, 'mm'),
          legend.title = element_text(size=10), #change legend title font size
          legend.text = element_text(size=8),
-         plot.background = element_blank())+
+         plot.background = element_blank(),
+         axis.text.x = element_text(angle = 60, hjust =1, size=11),
+         axis.text.y = element_text(size=10),
+         axis.title = element_text(size=11))+
       labs(
          x = NULL,
          y = 'Quantidade de Amostras'

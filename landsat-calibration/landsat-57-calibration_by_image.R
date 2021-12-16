@@ -13,12 +13,25 @@ set.seed(1)
 #### IMPORT AND CLEAN -- IN SITU DATA ####
 insitu_data <- importInSituData()
 
+principais_estacoes <- fread("principais_estacoes.csv")
+principais_estacoes <- principais_estacoes[, ':=' (
+  site_no = as.character(site_no))]$site_no
+  
 #Renan - Mantendo apenas dados da estacao Pedro Gomes - 66845000
 #taquari_insitu_raw <- taquari_insitu_raw[site_no == 66845000] 
-insitu_data_site_nos <- unique(insitu_data[!is.na(site_no),site_no])
+insitu_data_site_nos <- unique(insitu_data[insitu_data$EstacaoCodigo  %in% principais_estacoes]$site_no)
 
 # Import landsat spectral data from each site of interest
 ls_sr_data <- importLandsatSurfaceReflectanceData()[site_no %chin% insitu_data_site_nos]
+
+ls_sr_data <- ls_sr_data[,  ':='(
+                        ndssi = (ls_sr_data$B4-ls_sr_data$B1)/(ls_sr_data$B4+ls_sr_data$B1),
+                        nsmi = (ls_sr_data$B3 + ls_sr_data$B2 - ls_sr_data$B1)/(ls_sr_data$B3 +ls_sr_data$B2 + ls_sr_data$B1),
+                        index_montaigner_2014 = (ls_sr_data$B4+ ls_sr_data$B3)/(ls_sr_data$B2 + ls_sr_data$B1))]
+
+ggplot()+
+  geom_boxplot(aes(x = as.factor(ls_sr_data$station_nm), y = ls_sr_data$index_montaigner_2014))+
+  theme_clean()
 
 ## Identify sites with too few Landsat measurements to be reliable
 # Calculate number of satellite samples, per site
@@ -30,6 +43,9 @@ ls_sr_data <- ls_sr_data[site_no %chin% site_no_n100 & num_pix >2 ]
 ## Join Landsat data with in situ data, allowing for as much as a 10-day lead/lag
 lag_days <- 3
 ls_sr_insitu_data <- joinSRInSituData(ls_sr_data, insitu_data, lagdays)
+
+write_csv(ls_sr_insitu_data, paste0(wd_exports,'ls_sr_insitu_data.csv'))
+
 
 # Select minimum lead/lag row
 setkey(ls_sr_insitu_data[,abs_lag_days := abs(lag_days)], abs_lag_days)
@@ -47,22 +63,23 @@ site_band_quantiles_all <- ls_sr_data[
   ,.(N_samples = .N,
      B1 = median(B1),
      B2 = median(B2),
-     B3 = median(B3),
-     B4 = median(B4),
+     B3 = median(B3)
+     # B4 = median(B4),
      # B5 = median(B5),
      # B7 = median(B7),
-     B2.B1 = median(B2.B1),
-     B3.B1 = median(B3.B1),
-     B4.B1 = median(B4.B1),
-     B3.B2 = median(B3.B2),
-     B4.B2 = median(B4.B2),
-     B4.B3 = median(B4.B3),
-     B4.B3.B1 = median(B4.B3/B1)),
+     # B2.B1 = median(B2.B1),
+     # B3.B1 = median(B3.B1),
+     # B4.B1 = median(B4.B1),
+     # B3.B2 = median(B3.B2),
+     # B4.B2 = median(B4.B2),
+     # B4.B3 = median(B4.B3),
+     # B4.B3.B1 = median(B4.B3/B1)
+     ),
   by = .(station_nm,site_no, Latitude, Longitude)]
 
 
 #Segundo e terceiro parametros sao respectivamente limite minimo de clusters e limite max de variaves
-ccc_analysis <- runClusterAnalysis(site_band_quantiles_all, 2, 4)
+ccc_analysis <- runClusterAnalysis(site_band_quantiles_all, 2, 3)
 
 #https://support.sas.com/documentation/onlinedoc/v82/techreport_a108.pdf
 #ccc_best <- ccc_analysis[nclusters == clusters & nvars < vars][, .(mean_ccc = mean(ccc, na.rm = T)), by = variables][order(-mean_ccc)]
@@ -91,7 +108,7 @@ plot(ccc_plot)
 
 # Select variables to use for clustering
 # Renan - Selecionar variaveis
-clustering_vars <- unlist(strsplit(as.character(ccc_analysis[1,'variables']),'_')) # based on optimal cluster vars from ccc analysis
+clustering_vars <- unlist(strsplit(as.character(ccc_analysis[12,'variables']),'_')) # based on optimal cluster vars from ccc analysis
 
 
 # Compute number of in situ-landsat pairs per station

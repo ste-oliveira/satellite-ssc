@@ -145,4 +145,7 @@ library(factoextra)
 library(FactoMineR)
 # library(viridis)
 library(SimDesign)
+library(car)
+library(rstanarm)
+library(jtools)
 

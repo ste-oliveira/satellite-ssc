@@ -24,7 +24,7 @@ ssc_category_labels <- paste0(ssc_categories[-length(ssc_categories)],'-',c(ssc_
 # Make highest SSC category "> highest value"
 ssc_category_labels[length(ssc_category_labels)] <- paste0('> ', ssc_categories[length(ssc_category_labels)])
 
-generatePredictedHistoricalSerieByStation <- function(predictedSSC, landsat_serie){
+generatePredictedHistoricalSerieByStation <- function(ls_sr_insitu_data, predictedSSC, landsat_serie){
    stations_predicted <- data.frame(predictedSSC[, .(station_nm), .(station_nm)])[,1]
    
    for(station in stations_predicted){
@@ -44,7 +44,7 @@ generatePredictedHistoricalSerieByStation <- function(predictedSSC, landsat_seri
       
       # create data
       landsat_dt <- predictedSSC_station$landsat_dt
-      ssc_prediction <- 10^predictedSSC_station$predict.1
+      ssc_prediction <- 10^predictedSSC_station$ssc_prediction
       data <- data.frame(landsat_dt,ssc_prediction, name=predictedSSC_station$station_nm)
       data <-data[order(data$landsat_dt),]
       color <-  cbPalette[which(stations_predicted == station)]
@@ -69,8 +69,8 @@ generatePredictedHistoricalSerieByStation <- function(predictedSSC, landsat_seri
              width = 12, height = 4.5)
       
       
-      insitu_raw_station <- ssc_model_cl_iterate_pred[station_nm==station]
-      insitu_raw_station <- insitu_raw_station[,':='(absoluteError = ae(10^log10_SSC_mgL, 10^pred_cl))]
+      insitu_raw_station <- ls_sr_insitu_data[station_nm==station]
+      insitu_raw_station <- insitu_raw_station[,':='(absoluteError = ae(10^log10_SSC_mgL, 10^ssc_prediction))]
       
       lagdaysError <- ggplot(insitu_raw_station) + 
          geom_point(aes(x=lag_days, y=absoluteError),color = '#000000', fill="#FF0000", pch = 21, size=3)+
@@ -87,6 +87,7 @@ generatePredictedHistoricalSerieByStation <- function(predictedSSC, landsat_seri
             y = 'Erro Absoluto (mg/L)',
             x = 'Lag Days'
          ) 
+      plot(lagdaysError)
       
       ggsave(lagdaysError, filename = paste0(wd_exports_station, '/ssc_', station, '_lagdays_error.png'), 
              width = 6, height = 5)
