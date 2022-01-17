@@ -1,0 +1,17 @@
+fid;Rio;Estado;Municipio;Responsave;Operadora;Codigo;Estacao;Nome;Bacia;Sistema_Deposicional;grupo_3;grupo_4;grupo_5
+18835;Rio Cuiaba;MT;ACORIZAL;FURNAS;FURNAS;66255000;ACORIZAL;Acorizal;Cuiaba;lowlands-catchment;3;3;3
+19054;RIO MANSO;MT;CHAPADA DOS GUIMARÃƒES;CONS.MANSO;CONS.MANSO;66162000;UHE MANSO MONTANTE;UHE Manso Montante;Cuiaba;lowlands-catchment;2;2;5
+19055;RIO MANSO;MT;CHAPADA DOS GUIMARÃƒES;CONS.MANSO;CONS.MANSO;66210000;UHE MANSO JUSANTE;UHE Manso Jusante;Cuiaba;lowlands-catchment;2;2;5
+19089;Rio Cuiaba;MT;CUIABÃ;FURNAS;FURNAS;66260001;CUIABA;Cuiab�;Cuiaba;lowlands-catchment;3;3;3
+19179;RIO JAURU;MT;JAURU;CONS.JAURU;CONS.JAURU;66071382;UHE JAURU MONTANTE;Jauru;Jauru;lowlands-catchment;1;1;1
+19449;RIO VERMELHO;MT;RONDONÃ“POLIS;ANA;CPRM;66450001;RONDONOPOLIS;Rondon�polis;Sao Lourenco;tablelands-catchment;3;3;3
+19462;Rio Cuiaba;MT;ROSÃRIO OESTE;FURNAS;FURNAS;66250001;ROSARIO OESTE;Ros�rio Oeste;Cuiaba;lowlands-catchment;2;2;2
+19499;RIO SÃƒO LOURENÃ‡O;MT;SÃƒO PEDRO DA CIPA;ANA;CPRM;66380000;SAO PEDRO DA CIPA;S�o Pedro da Cipa;Sao Lourenco;tablelands-catchment;2;2;2
+20614;RIO AQUIDAUANA;MS;AQUIDAUANA;ANA;CPRM;66945000;AQUIDAUANA;Aquidauana;Aquidauana;tablelands-catchment;3;3;3
+20637;RIO MIRANDA;MS;BONITO;ANA;CPRM;66900000;ESTRADA MT-738;Estrada MT-738;Miranda ;lowlands-catchment;2;2;2
+20796;RIO TAQUARI;MS;COXIM;ANA;CPRM;66845000;PEDRO GOMES;Pedro Gomes;Taquari;tablelands-catchment;3;4;4
+20797;RIO TAQUARI;MS;COXIM;ANA;CPRM;66870000;COXIM;Coxim;Taquari;tablelands-catchment;3;4;4
+20803;RIO JAURU;MS;COXIM;ANA;CPRM;66855000;GARIMPAGEM;Garimpagem;Taquari;tablelands-catchment;3;4;4
+20876;RIO MIRANDA;MS;MIRANDA;ANA;CPRM;66910000;MIRANDA;Miranda;Miranda ;lowlands-catchment;2;2;2
+21028;RIO CORRENTES;MS;SONORA;AQUARIUS;AQUARIUS;66493900;PCH AQUARIUS MONTANTE;PCH Aquarius Montante;Sao Lourenco;lowlands-catchment;1;1;1
+21047;RIO AQUIDAUANA;MS;TERENOS;ANA;CPRM;66926000;PONTE DO GREGO;Ponto do Grego;Aquidauana;tablelands-catchment;2;2;2
