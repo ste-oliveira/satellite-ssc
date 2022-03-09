@@ -79,7 +79,7 @@ plotDataSetByStation <- function(ls_sr_insitu_data) {
          axis.title = element_text(size=11))+
       labs(
          x = NULL,
-         y = 'Concentração de Sedimentos (mg/L)'
+         y = 'Concentra??o de Sedimentos (mg/L)'
       )
    
    ggsave(dataset_plot, filename = paste0(wd_exports,'insitu_by_station.png'), width = 8, height = 6)
@@ -120,13 +120,13 @@ plotClusterSSCCategoryColor <- function(ssc_category_color){
       
       if(j == 1){
          cluster_ssc_category_color_plot <- cluster_ssc_category_color_plot + labs(
-            y = 'Concentração de Sedimentos (mg/L)',
-            x = 'Cor Típica do Rio (Cor Verdadeira)'
+            y = 'Concentra??o de Sedimentos (mg/L)',
+            x = 'Cor T?pica do Rio (Cor Verdadeira)'
          )
       }else{
          cluster_ssc_category_color_plot <- cluster_ssc_category_color_plot + labs(
-            y = 'Concentração de Sedimentos (mg/L)',
-            x = 'Cor Típica do Rio (Falsa Cor)'
+            y = 'Concentra??o de Sedimentos (mg/L)',
+            x = 'Cor T?pica do Rio (Falsa Cor)'
          )
       }
       
@@ -163,8 +163,8 @@ plotErrorLMOutliers <- function(ls_sr_insitu_data, r_squared, rmse){
          legend.position = 'none'
       )+
       labs(
-         x = "SSC Estimado (log(mg/L))",
-         y = 'SSC In Situ (log(mg/L))'
+         x = "CSS Estimado (log(mg/L))",
+         y = 'CSS In Situ (log(mg/L))'
       )
     ggsave(errro_lm_outliers_plot, filename = paste0(wd_exports, 'error_lm_outliers_plot.png'), width = 6, height = 6)
    
@@ -189,8 +189,8 @@ plotErrorLM <- function(ls_sr_insitu_data, r_squared, rmse){
          legend.position = 'none'
       )+
       labs(
-         x = "SSC Estimado (log(mg/L))",
-         y = 'SSC In Situ (log(mg/L))'
+         x = "CSS Estimado (log(mg/L))",
+         y = 'CSS In Situ (log(mg/L))'
       )
    
    ggsave(errro_lm_plot, filename = paste0(wd_exports, 'error_lm_plot.png'), width = 6, height = 6)

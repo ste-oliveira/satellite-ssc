@@ -3,7 +3,7 @@ fid;Rio;Estado;Municipio;Responsave;Operadora;Codigo;Estacao;Nome;Bacia;Sistema_
 19054;RIO MANSO;MT;CHAPADA DOS GUIMARÃƒES;CONS.MANSO;CONS.MANSO;66162000;UHE MANSO MONTANTE;UHE Manso Montante;Cuiaba;lowlands-catchment;2;2;5
 19055;RIO MANSO;MT;CHAPADA DOS GUIMARÃƒES;CONS.MANSO;CONS.MANSO;66210000;UHE MANSO JUSANTE;UHE Manso Jusante;Cuiaba;lowlands-catchment;2;2;5
 19089;Rio Cuiaba;MT;CUIABÃ;FURNAS;FURNAS;66260001;CUIABA;Cuiab�;Cuiaba;lowlands-catchment;3;3;3
-19179;RIO JAURU;MT;JAURU;CONS.JAURU;CONS.JAURU;66071382;UHE JAURU MONTANTE;Jauru;Jauru;lowlands-catchment;1;1;1
+19179;RIO JAURU;MT;JAURU;CONS.JAURU;CONS.JAURU;66071382;UHE JAURU MONTANTE;UHE Jauru Montante;Jauru;lowlands-catchment;1;1;1
 19449;RIO VERMELHO;MT;RONDONÃ“POLIS;ANA;CPRM;66450001;RONDONOPOLIS;Rondon�polis;Sao Lourenco;tablelands-catchment;3;3;3
 19462;Rio Cuiaba;MT;ROSÃRIO OESTE;FURNAS;FURNAS;66250001;ROSARIO OESTE;Ros�rio Oeste;Cuiaba;lowlands-catchment;2;2;2
 19499;RIO SÃƒO LOURENÃ‡O;MT;SÃƒO PEDRO DA CIPA;ANA;CPRM;66380000;SAO PEDRO DA CIPA;S�o Pedro da Cipa;Sao Lourenco;tablelands-catchment;2;2;2
@@ -13,5 +13,5 @@ fid;Rio;Estado;Municipio;Responsave;Operadora;Codigo;Estacao;Nome;Bacia;Sistema_
 20797;RIO TAQUARI;MS;COXIM;ANA;CPRM;66870000;COXIM;Coxim;Taquari;tablelands-catchment;3;4;4
 20803;RIO JAURU;MS;COXIM;ANA;CPRM;66855000;GARIMPAGEM;Garimpagem;Taquari;tablelands-catchment;3;4;4
 20876;RIO MIRANDA;MS;MIRANDA;ANA;CPRM;66910000;MIRANDA;Miranda;Miranda ;lowlands-catchment;2;2;2
-21028;RIO CORRENTES;MS;SONORA;AQUARIUS;AQUARIUS;66493900;PCH AQUARIUS MONTANTE;PCH Aquarius Montante;Sao Lourenco;lowlands-catchment;1;1;1
+21028;RIO CORRENTES;MS;SONORA;AQUARIUS;AQUARIUS;66493900;PCH AQUARIUS MONTANTE;PCH Aquarius Montante;Itiquira;tablelands-catchment;1;1;1
 21047;RIO AQUIDAUANA;MS;TERENOS;ANA;CPRM;66926000;PONTE DO GREGO;Ponto do Grego;Aquidauana;tablelands-catchment;2;2;2

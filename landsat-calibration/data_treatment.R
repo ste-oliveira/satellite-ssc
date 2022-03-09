@@ -56,13 +56,14 @@ importLandsatSurfaceReflectanceData <- function() {
                                ndssi = (B4-B1)/(B4+B1),
                                nsmi = (B3+B2-B1)/(B3+B2+B1),
                                index_montaigner_2014 = (B4+B3)/(B2+B1),
-                               bi = sqrt((B3^2+B2^2)/2))
+                               bi = sqrt((B3^2+B2^2)/2),
+                               B3.B2.B1 = B3/(B2+B1))
                 ][ 
                        # select only columns of interest
                        ,.(station_nm, sensor, site_no, Latitude,Longitude, num_pix, landsat_dt,
                           B1,B2,B3,B4,B5,B6,B7,B2.B1,B3.B1,B4.B1,B5.B1,B7.B1,B3.B2,B4.B2,B3.B4,B5.B2,
                           B7.B2,B4.B3,B5.B3,B7.B3,B5.B4,B7.B4,B7.B5,B1.2,B2.2,B3.2,B4.2,B5.2,B7.2,
-                          ndssi, nsmi, index_montaigner_2014, bi
+                          ndssi, nsmi, index_montaigner_2014, bi, B3.B2.B1
                        )]
         return(ls_sr_data)
 } 

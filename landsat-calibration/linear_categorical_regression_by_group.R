@@ -63,6 +63,8 @@ train.control <- trainControl(method = "repeatedcv", number = 10, repeats = 100)
 model_lm <- train(log10_SSC_mgL ~ index_montaigner_2014 + Bacia + sensor, data = ls_sr_insitu_data, 
                   method = "lm", trControl = train.control)
 
+extract_eq(model_lm$finalModel, use_coefs = TRUE)
+
 ls_sr_insitu_data$pred <- predict(model_lm, ls_sr_insitu_data)
 ls_sr_insitu_data$diff <- ls_sr_insitu_data[, .(diff=abs((pred-log10_SSC_mgL)))]
 

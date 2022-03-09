@@ -36,7 +36,16 @@ ls_sr_insitu_data <- joinSRInSituData(ls_sr_data, insitu_data, lagdays)
 # Select minimum lead/lag row
 setkey(ls_sr_insitu_data[,abs_lag_days := abs(lag_days)], abs_lag_days)
 ls_sr_insitu_data <- ls_sr_insitu_data[, 
-                                       list(index_montaigner_2014 = median(index_montaigner_2014)),
+                                       list(
+                                          B3.B1 = median(B3.B1),
+                                          B3.B2 = median(B3.B2),
+                                          B4.B3 = median(B4.B3),
+                                          B4.B2 = median(B4.B2),
+                                          B3.B2.B1 = median(B3.B2.B1),
+                                          nsmi = median(nsmi),
+                                          ndssi = median(ndssi),
+                                          index_montaigner_2014 = median(index_montaigner_2014),
+                                          B2.B1 = median(B2.B1)),
                                        .(site_no, sample_date, station_nm, log10_SSC_mgL, ConcentracaoMatSuspensao, sensor)]
 n_insitu_samples <- ls_sr_insitu_data[,.(N_samples = .N), by = .(site_no)]
 
@@ -61,7 +70,7 @@ ls_sr_insitu_data = ls_sr_insitu_data[diff<0.79]
 train.control <- trainControl(method = "repeatedcv", number = 10, repeats = 100)
 
 # Train the model
-model_lm <- train(log10_SSC_mgL ~ index_montaigner_2014 + site_no + sensor, data = ls_sr_insitu_data, 
+model_lm <- train(log10_SSC_mgL ~ B3.B2.B1 + site_no + sensor, data = ls_sr_insitu_data, 
                   method = "lm", trControl = train.control)
 
 ls_sr_insitu_data$pred <- predict(model_lm, ls_sr_insitu_data)
