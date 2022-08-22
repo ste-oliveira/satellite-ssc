@@ -38,81 +38,85 @@ generatePredictedHistoricalSerieByStation <- function(landsat_serie, vazao_data,
          dir.create(wd_exports_station)
       }
 
-      # write_csv(station_summary, paste0(wd_exports_station, station,'_station_summary.csv'))
-
-      # create data
-      # landsat_dt <- predictedSSC_station$landsat_dt
-      # ssc_prediction <- 10^predictedSSC_station$ssc_prediction
-      # data <- data.frame(landsat_dt,ssc_prediction, name=predictedSSC_station$station_nm)
-      # data <-data[order(data$landsat_dt),]
-      # color <-  cbPalette[which(stations_predicted == station)]
-      # 
-
       predictplot <-ggplot() +
+         geom_area(aes(x=vazao_data_station$Data, y=vazao_data_station$Media*2, fill="Vazão") ) +
+         geom_line(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction), size=0.5, color="#888888") +
          
-         geom_line(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction), size=0.5, color="#000000") +
-         geom_point(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction, colour=sensor), 
-                    size=1.5) +
-         stat_smooth(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction) , color="#66bd63", method="lm",
-                     linetype = "dashed", se=F, size=1.2, formula = y~x)+
-         stat_poly_eq(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction),
-                      label.x.npc = 0.025, label.y.npc = 0.95, colour="#66bd63",
-                      formula = y~x, parse = TRUE, size = 4) +
-
-         geom_point(data=max_ssc_prediction_by_year_station, aes(x=landsat_dt,y=10^ssc_prediction),
-                        size=2, color="#d73027")+
-         stat_smooth(data=max_ssc_prediction_by_year_station, aes(x=landsat_dt,y=10^ssc_prediction),
-                     formula = y~x, method="lm", se=F, size=1.2, color="#a50026", linetype = "dashed")+
+         geom_point(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction, colour=sensor), size=1.5) +
+         geom_point(data=max_ssc_prediction_by_year_station, aes(x=landsat_dt,y=10^ssc_prediction, 
+                                                                 colour="CSS Máxima Anual"), size=2)+
+         
+         stat_smooth(data=predictedSSC_station,  method="lm",  se=F, size=1.2, formula = y~x,
+                     aes(x=landsat_dt, y=10^ssc_prediction,  color="Tendência CSS"), linetype="dashed")+
+         stat_smooth(data=max_ssc_prediction_by_year_station, formula = y~x, method="lm", se=F, size=1.2, 
+                     aes(x=landsat_dt,y=10^ssc_prediction, color="Tendência CSS (Máximas Anuais)"), linetype="dashed")+
+         
          stat_poly_eq(data=max_ssc_prediction_by_year_station, aes(x=landsat_dt,y=10^ssc_prediction),
-                      label.x.npc = 0.025, label.y.npc = 0.9,
-                      formula = y~x, parse = TRUE, size = 4, color="#a50026") +
-
-         scale_x_date(date_labels = "%Y", date_breaks = "1 year",
-                      limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
-         scale_y_continuous(limits=c(0, 900), breaks = seq(0, 2000, by = 100), expand=c(0,0))+
-         scale_color_manual(values = c("#2171b5", "#08306b"))+
-         ylab("CSS Estimada (mg/L)")+
-         xlab("Ponto do Grego (66926000)")+
-         theme_clean()+
-         theme(
-            legend.position="none",
-            axis.text =  element_text(size=10),
-            axis.title = element_text(size=12, face = 'bold'),
-            axis.title.y.right = element_text(color="#999999"),
-            axis.title.y.left = element_text(color="#000000"),
-            axis.text.x=element_text(angle=60, hjust=1),
-            plot.background = element_blank())
-
-      vazaoplot <-ggplot() +
-         geom_point(aes(x=vazao_data_station$Data, y=vazao_data_station$Media), color="#999999")+
-         geom_line(aes(x=vazao_data_station$Data, y=vazao_data_station$Media), size=0.5, color="#999999") +
+               label.x.npc = 0.025, label.y.npc = 1, formula = y~x, parse = TRUE, size = 5, color="#ef3b2c") +
+         stat_poly_eq(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction),
+               label.x.npc = 0.025, label.y.npc = 0.9, colour="#045a8d", formula = y~x, parse = TRUE, size = 5) +
          
          scale_x_date(date_labels = "%Y", date_breaks = "1 year",
                       limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
-         scale_y_continuous(limits=c(0, 400), breaks = seq(0, 3000, by = 50), expand=c(0,0))+
-         ylab("Vazão Média (m³/s)")+
-         xlab("Ponto do Grego (66926000)")+
+         scale_y_continuous(limits=c(0, 1000), breaks = seq(0, 1000, by = 100), expand=c(0,0),
+                            sec.axis = sec_axis(~./2, name="Vazão Média (m³/s)", breaks = seq(0,500,50)))+
+         
+        
+         
+         scale_color_manual(name="Legenda", values = c("Landsat 5"="#74c476", "Landsat 7"="#41ab5d", "CSS Máxima Anual"="#a50f15",
+                                       "Tendência CSS"="#045a8d", "Tendência CSS (Máximas Anuais)"="#ef3b2c"),
+                            guide = guide_legend(override.aes = list(linetype = c(0, 0, 0, 2, 2),
+                                                                     size = c(4, 4, 4, 1.2, 1.2),
+                                                                     shape=c(16,16,16,NA,NA))))+
+         scale_fill_manual(name="Legenda", values = c( "Vazão"="#c6dbef"))+
+         # scale_linetype_manual(values=c("tendencia"="dashed", "tendencia_max"="dashed"))+
+         
+      
+         ylab("CSS Estimada (mg/L)")+
+         xlab("Ponte do Grego (66926000)")+
          theme_clean()+
          theme(
+            legend.position = "top",
+            legend.margin = unit(0,"cm"),
+            legend.key = element_blank(),
+            legend.title = element_blank(),
+            legend.key.width = unit(1, "cm"),
+            legend.background = element_rect(color = NA),
             axis.text =  element_text(size=10),
             axis.title = element_text(size=12, face = 'bold'),
-            axis.title.y.right = element_text(color="#999999"),
+            axis.title.y.right = element_text(color="#000000"),
             axis.title.y.left = element_text(color="#000000"),
             axis.text.x=element_text(angle=60, hjust=1),
             plot.background = element_blank())
+
+      # vazaoplot <-ggplot() +
+      #    #geom_point(aes(x=vazao_data_station$Data, y=vazao_data_station$Media), color="#999999")+
+      #    geom_area(aes(x=vazao_data_station$Data, y=vazao_data_station$Media), size=0.5, color="#999999", 
+      #              alpha=0.4) +
+      #    
+      #    scale_x_date(date_labels = "%Y", date_breaks = "1 year",
+      #                 limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
+      #    scale_y_continuous(limits=c(0, 400), breaks = seq(0, 3000, by = 50), expand=c(0,0))+
+      #    ylab("Vazão Média (m³/s)")+
+      #    xlab("Ponte do Grego (66926000)")+
+      #    theme_clean()+
+      #    theme(
+      #       axis.text =  element_text(size=10),
+      #       axis.title = element_text(size=12, face = 'bold'),
+      #       axis.title.y.right = element_text(color="#999999"),
+      #       axis.title.y.left = element_text(color="#000000"),
+      #       axis.text.x=element_text(angle=60, hjust=1),
+      #       plot.background = element_blank())
       
-      plot(ggarrange(predictplot, vazaoplot, nrow=2, ncol=1))
+      #plot(ggarrange(predictplot, vazaoplot, nrow=2, ncol=1))
       
-      ggsave(predictplot, filename = paste0(wd_exports_station, '/ssc_', station, '.png'), 
-             width = 10, height = 6) 
-      ggsave(vazaoplot, filename = paste0(wd_exports_station, '/vazao_', station, '.png'), 
-             width = 10, height = 6) 
+      plot(predictplot)
+      
+      # ggsave(predictplot, filename = paste0(wd_exports_station, '/ssc_', station, '.png'), 
+      #        width = 10, height = 6) 
+      # ggsave(vazaoplot, filename = paste0(wd_exports_station, '/vazao_', station, '.png'), 
+      #        width = 10, height = 6) 
       break;
-      # write.xlsx(predictedSSC_station[,c("station_nm", "sensor", "ssc_prediction", "landsat_dt")], 
-      #            paste0(wd_exports, station,'.xlsx') ,'predicoes.xlsx')
-      # write.xlsx(max_ssc_prediction_by_year_station[,c("station_nm", "sensor", "ssc_prediction", "landsat_dt")], 
-      #            paste0(wd_exports, station,'.xlsx'),'predicoes_maximas_anuais',  append=TRUE)
-      # write.xlsx(cota_data_station, paste0(wd_exports, station,'.xlsx'), "cotas",  append=TRUE)
 
    }
 }

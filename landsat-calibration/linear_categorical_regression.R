@@ -99,8 +99,8 @@ vazao_data <- mutate(vazao_data,
                      Media = as.numeric(Media)) %>% distinct()
 
 # Seleciona
-landsat_serie <- landsat_serie[site_no==66255000]
-vazao_data <- vazao_data[EstacaoCodigo == 66255000]
+landsat_serie <- landsat_serie[site_no==66926000]
+vazao_data <- vazao_data[EstacaoCodigo == 66926000]
 
 # historical_data<- left_join(landsat_serie, cota_data, by=c('site_no'='EstacaoCodigo', 'landsat_dt' ='Data'))
 generatePredictedHistoricalSerieByStation(landsat_serie, vazao_data,max_ssc_prediction_by_year)
@@ -131,7 +131,7 @@ for(station in estacoes){
    }
    
    vazao_ssc_plot <- ggplot() +
-      geom_point(data=vazao_ssc_station, aes(x=Media, y=media_ssc_prediction), fill="#999999", color="#000000", alpha=0.7, pch = 21, size = 5)+
+      geom_point(data=vazao_ssc_station, aes(x=Media, y=media_ssc_prediction), fill="#999999", color="#000000", alpha=0.3, pch = 21, size = 5)+
       stat_smooth(data=vazao_ssc_station, aes(x=Media, y=media_ssc_prediction) , color="#FF0000", method="lm", se=F, size=1.5, formula = y~x)+
       stat_poly_eq(data=vazao_ssc_station, aes(x=Media, y=media_ssc_prediction),
                    label.x.npc = 0.025, label.y.npc = 0.9, colour="#FF0000",
