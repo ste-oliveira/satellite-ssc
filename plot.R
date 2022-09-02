@@ -1,5 +1,5 @@
 # Plot number of satellite samples per site as a histogram
-n_sat_samples_histogram <- 
+n_sat_samples_histogram <- function(n_sat_samples){ 
   ggplot(n_sat_samples, aes(x = N_samples)) + 
   geom_histogram(color = 'black', lwd = 0.25, binwidth = 100) +
   geom_vline(
@@ -15,6 +15,7 @@ n_sat_samples_histogram <-
     x = 'Number of cloud-free satellite samples/site',
     y = 'Number of sites'
   )#
+}
 
 ### PLOT DATA SET IN SITU ####
 plotDataSetInsitu <- function(dataset) { 
@@ -199,3 +200,85 @@ plotErrorLM <- function(ls_sr_insitu_data, r_squared, rmse){
   
 }
 
+generatePredictedHistoricalSerieByStation <- function(landsat_serie, vazao_data, vazao_serie_decomposta, landsat_serie_decomposta){
+  stations_predicted <- data.frame(landsat_serie[, .(station_nm), .(station_nm)])[,1]
+  
+  for(station in stations_predicted){
+    
+    predictedSSC_station <- landsat_serie[station_nm==station]
+    vazao_data_station <- vazao_data[EstacaoCodigo==unique(predictedSSC_station$site_no)]
+    # max_ssc_prediction_by_year_station <- filter(max_ssc_prediction_by_year,station_nm == station)
+    
+    wd_exports_station <- paste0(wd_exports, station, '/')
+    
+    if(!dir.exists(wd_exports_station)){
+      dir.create(wd_exports_station)
+    }
+    
+    predictplot <-ggplot() + 
+      
+      geom_line(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction), size=0.5, color="#888888") +
+      geom_point(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction, colour=sensor), size=2) +
+      geom_line(data=landsat_serie_decomposta, aes(x=landsat_dt, y=trend,  colour="Tendência CSS"), size=1.2)+
+      
+      scale_y_continuous(limits=c(0, 1800), breaks = seq(0, 1800, by = 200), expand=c(0,0))+
+      scale_x_date(date_labels = "%Y", date_breaks = "1 year",
+                   limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
+      
+      scale_color_manual(name="Legenda", values = c("Landsat 5"="#66c2a4", "Landsat 7"="#41ae76", "Tendência CSS"="#cb181d"),
+                         guide = guide_legend(override.aes = list(linetype = c(0, 0, 1), size = c(4, 4, 1.2), shape=c(16,16,NA))))+
+      
+      ylab("CSS Estimada (mg/L)")+
+      xlab("Coxim (66870000)")+
+      theme_clean()+
+      theme(
+        legend.position = "right",
+        legend.margin = margin(0, 0,0,0,"cm"),
+        legend.key = element_blank(),
+        legend.title = element_blank(),
+        legend.key.width = unit(1, "cm"),
+        legend.background = element_rect(color = NA),
+        axis.text =  element_text(size=10),
+        axis.title = element_text(size=12, face = 'bold'),
+        axis.title.y.right = element_text(color="#000000"),
+        axis.title.y.left = element_text(color="#000000"),
+        axis.title.x.bottom = element_blank(),
+        axis.text.x=element_text(angle=60, hjust=1),
+        plot.background = element_blank())
+    
+    
+    vazaoplot <-ggplot() + 
+      geom_area(aes(x=vazao_data_station$Data, y=vazao_data_station$Media, fill="Vazão") ) +
+      geom_line(data=vazao_serie_decomposta, aes(x=data, y=trend,  colour="Tendência Vazão"), size=1.2)+
+      
+      scale_y_continuous(limits=c(0, 1200), breaks = seq(0, 1200, by = 100), expand=c(0,0))+
+      scale_x_date(date_labels = "%Y", date_breaks = "1 year",
+                   limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
+      
+      scale_fill_manual(name="Legenda", values = c( "Vazão"="#ddddff"))+
+      scale_color_manual(name="Legenda", values = c("Tendência Vazão"="#6a51a3"),
+                         guide = guide_legend(override.aes = list(linetype = c(1), size = c(1.2), shape=c(NA))))+
+      
+      ylab("Vazão Média (m³/s)")+
+      xlab("Coxim (66870000)")+
+      theme_clean()+
+      theme(
+        legend.position = "right",
+        legend.margin = margin(0, 0,0,0,"cm"),
+        legend.key = element_blank(),
+        legend.title = element_blank(),
+        legend.key.width = unit(1, "cm"),
+        legend.background = element_rect(color = NA),
+        axis.text =  element_text(size=10),
+        axis.title = element_text(size=12, face = 'bold'),
+        axis.title.y.right = element_text(color="#000000"),
+        axis.title.y.left = element_text(color="#000000"),
+        axis.text.x=element_text(angle=60, hjust=1),
+        plot.background = element_blank())
+    
+    plot(ggarrange(predictplot, vazaoplot, nrow=2, ncol=1))
+
+    break;
+    
+  }
+}

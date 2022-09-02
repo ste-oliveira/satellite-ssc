@@ -211,3 +211,13 @@ library(tibble)
 #old.packages()
 #update.packages(ask = FALSE)
 
+#install.packages("timeSeries")
+library(timeSeries)
+#install.packages("Kendall")
+library(Kendall)
+#install.packages("trend")
+library(trend)
+#install.packages("tseries")
+library(tseries)
+
+

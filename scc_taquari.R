@@ -58,7 +58,7 @@ dataset_summary <- summarizeDataSet(ls_sr_data, insitu_data, ls_sr_insitu_data)
 
 # Save satellite images/site histogram
 #ggsave(n_sat_samples_histogram, filename = paste0(wd_figures,'n_sat_samples_histogram.pdf'), width = 4, height = 4, useDingbats = F)
-plot(n_sat_samples_histogram)
+#plot(n_sat_samples_histogram)
 plotDataSetInsitu1(dataset_summary)
 plotDataSetImage(dataset_summary)
 #plotDataSetByStation(ls_sr_insitu_data) ### esta igual o de cima
@@ -122,9 +122,58 @@ max_ssc_prediction_by_year <- landsat_serie %>%
   group_by(year(ymd(landsat_serie$landsat_dt)), site_no) %>%
   slice(which.max(ssc_prediction))
 
-generatePredictedHistoricalSerieByStation(landsat_serie)
+vazao_data <- na.omit(fread('imports/vazao/VAZOES_ESTACOES.csv'))[EstacaoCodigo==66870000,]
+vazao_data <- mutate(vazao_data, 
+                     EstacaoCodigo=as.character(EstacaoCodigo), 
+                     month=month(dmy(Data)),
+                     year=year(dmy(Data)),
+                     Data=dmy(Data),
+                     Media = as.numeric(Media)) %>% distinct()
 
-R2_Score(ls_sr_insitu_data$pred, ls_sr_insitu_data$log10_SSC_mgL)
+
+landsat_serie_mensal <- mutate(landsat_serie,
+                               landsat_dt_month=month(landsat_dt),
+                               landsat_dt_year=year(landsat_dt)) %>%
+  group_by(landsat_dt_month, landsat_dt_year, site_no, station_nm) %>%
+  summarise(media_ssc_prediction=mean(ssc_prediction), landsat_dt=first(landsat_dt))
+
+
+#### Decomposicao Serie Temporal Vazao ####
+hist(vazao_data$Media, breaks=30)
+vazao_data_ordenada <- na.omit(vazao_data[order(vazao_data$Data),])
+vazao_ts <- na.remove(ts(vazao_data$Media, frequency=12, start=c(1982)))
+vazao_serie_decomposta <- decompose(vazao_ts, type="additive")
+vazao_serie_decomposta <- data.frame(cbind(vazao_serie_decomposta$trend, vazao_data_ordenada$Data))
+colnames(vazao_serie_decomposta) <- c("trend", "data")
+vazao_serie_decomposta <- mutate(vazao_serie_decomposta,
+                                 data = as.Date(data))
+
+MK = MannKendall(vazao_ts)
+summary(MK)
+sens.slope(vazao_ts)
+pettitt.test(vazao_ts)
+
+
+#### Decomposicao Serie Temporal CSS ####
+hist(10^landsat_serie_mensal$media_ssc_prediction, breaks=30)
+landsat_serie_mensal_ordenada <- na.omit(landsat_serie_mensal[order(landsat_serie_mensal$landsat_dt),])
+landsat_serie_mensal_ordenada_ts <- na.remove(ts(10^landsat_serie_mensal$media_ssc_prediction, frequency=12, start=c(1984)))
+landsat_serie_decomposta <- decompose(landsat_serie_mensal_ordenada_ts, type="additive")
+landsat_serie_decomposta <- data.frame(cbind(landsat_serie_decomposta$trend, landsat_serie_mensal_ordenada$landsat_dt))
+colnames(landsat_serie_decomposta) <- c("trend", "landsat_dt")
+landsat_serie_decomposta <- mutate(landsat_serie_decomposta,
+                                   landsat_dt = as.Date(landsat_dt))
+
+
+MK = MannKendall(landsat_serie_mensal_ordenada_ts)
+summary(MK)
+sens.slope(landsat_serie_mensal_ordenada_ts)
+pettitt.test(landsat_serie_mensal_ordenada_ts)
+
+
+#### Serie Historia CSS e Vazao ####
+
+generatePredictedHistoricalSerieByStation(landsat_serie, vazao_data, vazao_serie_decomposta, landsat_serie_decomposta)
 
 
 

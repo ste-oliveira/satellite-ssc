@@ -1,6 +1,6 @@
 #### SET DIRECTORIES ####
 # Set root directory
-wd_root <- "D:/Users/Ste/Documents/_DOUTORADO/CSS/TAQUARI/taquari"
+wd_root <- "C:/Users/renan/GIT/taquari/satellite-ssc"
 
 # Imports folder (store all import files here)
 ##wd_imports <- paste0(wd_root,"/imports/")
