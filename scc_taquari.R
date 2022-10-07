@@ -7,6 +7,7 @@ source("config.R")
 source("database.R")
 source("plot.R")
 
+
 #### 1. IMPORT AND CLEAN -- IN SITU DATA ####
 insitu_data <- importInSituData()
 #View(insitu_data)
@@ -122,31 +123,73 @@ max_ssc_prediction_by_year <- landsat_serie %>%
   group_by(year(ymd(landsat_serie$landsat_dt)), site_no) %>%
   slice(which.max(ssc_prediction))
 
+pluviometria_data <- na.omit(fread('imports/pluviometria/COXIM_PLUVIOMETRIA.csv'))
+pluviometria_data_bat <- na.omit(fread('imports/pluviometria/Precipacao_BAT.csv'))
+
+
+pluviometria_data <- transmute(pluviometria_data, 
+                     month=month(dmy(Data)),
+                     year=year(dmy(Data)),
+                     Data=dmy(Data),
+                     Total = as.numeric(Total)) %>% distinct()
+
+pluviometria_data_bat <- transmute(pluviometria_data_bat, 
+                               month=month(dmy(Data)),
+                               year=year(dmy(Data)),
+                               Data=dmy(Data),
+                               Total = as.numeric(Total)) %>% distinct()
+
+pluviometria_data_merged <- rbind(pluviometria_data, pluviometria_data_bat)
+
 vazao_data <- na.omit(fread('imports/vazao/VAZOES_ESTACOES.csv'))[EstacaoCodigo==66870000,]
 vazao_data <- mutate(vazao_data, 
                      EstacaoCodigo=as.character(EstacaoCodigo), 
                      month=month(dmy(Data)),
                      year=year(dmy(Data)),
                      Data=dmy(Data),
-                     Media = as.numeric(Media)) %>% distinct()
+                     Media = as.numeric(Media)) %>% 
+              distinct()
+vazao_data <-  na.omit(vazao_data[order(vazao_data$Data)])
 
+vazao_data_anual <- group_by(vazao_data, year, EstacaoCodigo) 
+vazao_data_anual<-summarise(vazao_data_anual, anual=mean(Media), Data=first(Data))
 
 landsat_serie_mensal <- mutate(landsat_serie,
                                landsat_dt_month=month(landsat_dt),
-                               landsat_dt_year=year(landsat_dt)) %>%
+                               landsat_dt_year=year(landsat_dt),
+                               # month_year = paste0(month(landsat_dt, label=TRUE),"-",year(landsat_dt)),
+                               # sort_order = year(landsat_dt) *100 + as.POSIXlt(landsat_dt)$mon,
+                               ssc_prediction=10^ssc_prediction) %>%
   group_by(landsat_dt_month, landsat_dt_year, site_no, station_nm) %>%
   summarise(media_ssc_prediction=mean(ssc_prediction), landsat_dt=first(landsat_dt))
 
+landsat_serie_anual <- group_by(landsat_serie_mensal, landsat_dt_year, site_no, station_nm) 
+landsat_serie_anual <- summarise(landsat_serie_anual, ssc_prediction=mean(media_ssc_prediction), landsat_dt=first(landsat_dt))
+
+
+# vazao_data <- filter(vazao_data, year>1983)
+
+ssc_vazao<-left_join(landsat_serie_mensal, vazao_data, by = c("landsat_dt_year" = "year", "landsat_dt_month" = "month"))
+
+generateBoxPlotPredictedHistoricalSerieByStation(landsat_serie_mensal, vazao_data, max_ssc_prediction_by_year, ssc_vazao,pluviometria_data_merged)
+generatePredictedHistoricalSerie(landsat_serie, vazao_data, max_ssc_prediction_by_year, pluviometria_data_merged)
 
 #### Decomposicao Serie Temporal Vazao ####
-hist(vazao_data$Media, breaks=30)
-vazao_data_ordenada <- na.omit(vazao_data[order(vazao_data$Data),])
-vazao_ts <- na.remove(ts(vazao_data$Media, frequency=12, start=c(1982)))
+vazao_data_anual = mice(vazao_data_anual)
+vazao_data_anual = complete(vazao_data_anual)
+# vazao_data_anual$anual= scale(vazao_data_anual$anual)
+
+
+hist(vazao_data_anual$anual, breaks=100)
+shapiro.test(vazao_data_anual$anual)
+vazao_data_ordenada <- na.omit(vazao_data_anual[order(vazao_data_anual$Data),])
+vazao_ts <- na.remove(ts(vazao_data_anual$anual, frequency=1, start=c(1982)))
 vazao_serie_decomposta <- decompose(vazao_ts, type="additive")
 vazao_serie_decomposta <- data.frame(cbind(vazao_serie_decomposta$trend, vazao_data_ordenada$Data))
 colnames(vazao_serie_decomposta) <- c("trend", "data")
 vazao_serie_decomposta <- mutate(vazao_serie_decomposta,
                                  data = as.Date(data))
+
 
 MK = MannKendall(vazao_ts)
 summary(MK)
@@ -154,8 +197,56 @@ sens.slope(vazao_ts)
 pettitt.test(vazao_ts)
 
 
+#### Correlação Linear Vazao ####
+cor(vazao_data_anual$year, vazao_data_anual$anual)
+vazao_lm <- lm(data = vazao_data_anual, anual~year)
+summary(vazao_lm)
+
+ggplot() + 
+  geom_point(aes(x=vazao_data_anual$year, y=vazao_data_anual$anual, colour="blue") ) +
+  stat_smooth(data=vazao_data_anual, aes(x=year, y=anual, colour="red",) , method="lm", se=F, size=1.5, formula = y~x)+
+  # geom_line(data=vazao_serie_decomposta, aes(x=data, y=trend,  colour="green"), size=1.2)+
+  
+  scale_y_continuous(limits=c(0, 700), breaks = seq(0, 700, by = 50), expand=c(0,0))+
+  scale_x_continuous(limits=c(1966, 2021), breaks = seq(1966, 2021, by = 1), expand=c(0,0))+
+  # scale_x_date(date_labels = "%Y", date_breaks = "1 year",
+  #              limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
+  
+  # scale_color_manual(name="Legenda", values = c("Discharge Trend"="#6a51a3"),
+  #                    guide = guide_legend(override.aes = list(linetype = c(1), size = c(1.2), shape=c(NA))))+
+  
+  stat_poly_eq(data=vazao_data_anual, aes(x=year, y=anual),
+               label.x.npc = 0.025, label.y.npc = 0.9, colour="#FF0000",
+               formula = y~x, parse = TRUE, size = 4) +
+  stat_correlation(data=vazao_data_anual, aes(x=year, y=anual),
+                   label.x = 0.025, label.y = 0.95, colour="#FF0000", parse = TRUE, size = 4, small.r = TRUE) +
+  
+  ylab("Avagare Discharge (m³/s)")+
+  theme_clean()+
+  theme(
+    legend.position = "top",
+    legend.margin = margin(0, 0,0,0,"cm"),
+    legend.key = element_blank(),
+    legend.title = element_blank(),
+    legend.key.width = unit(1, "cm"),
+    legend.background = element_rect(color = NA),
+    axis.text =  element_text(size=10),
+    axis.title = element_text(size=12, face = 'bold'),
+    axis.title.y.right = element_text(color="#000000"),
+    axis.title.y.left = element_text(color="#000000"),
+    axis.text.x=element_text(angle=60, hjust=1),
+    plot.background = element_blank())
+
+#plot(ggarrange(predictplot, vazaoplot, nrow=2, ncol=1))
+
+
 #### Decomposicao Serie Temporal CSS ####
-hist(10^landsat_serie_mensal$media_ssc_prediction, breaks=30)
+hist(landsat_serie_mensal$media_ssc_prediction, breaks=30)
+shapiro.test(landsat_serie_mensal$media_ssc_prediction)
+
+mice_ssc = mice(landsat_serie_mensal)
+complece_mice_ssc = complete(mice_ssc)
+
 landsat_serie_mensal_ordenada <- na.omit(landsat_serie_mensal[order(landsat_serie_mensal$landsat_dt),])
 landsat_serie_mensal_ordenada_ts <- na.remove(ts(10^landsat_serie_mensal$media_ssc_prediction, frequency=12, start=c(1984)))
 landsat_serie_decomposta <- decompose(landsat_serie_mensal_ordenada_ts, type="additive")
@@ -171,10 +262,51 @@ sens.slope(landsat_serie_mensal_ordenada_ts)
 pettitt.test(landsat_serie_mensal_ordenada_ts)
 
 
+#### Correlação Linear SSC ####
+cor(landsat_serie_anual$landsat_dt_year, landsat_serie_anual$ssc_prediction)
+ssc_lm <- lm(data = landsat_serie_anual, ssc_prediction~landsat_dt_year)
+summary(ssc_lm)
+
+ggplot() + 
+  geom_point(aes(x=landsat_serie_anual$landsat_dt_year, y=landsat_serie_anual$ssc_prediction, colour="blue") ) +
+  stat_smooth(data=landsat_serie_anual, aes(x=landsat_dt_year, y=ssc_prediction, colour="red",) , method="lm", se=F, size=1.5, formula = y~x)+
+  # geom_line(data=vazao_serie_decomposta, aes(x=data, y=trend,  colour="green"), size=1.2)+
+  
+  scale_y_continuous(limits=c(0, 1000), breaks = seq(0, 1000, by = 100), expand=c(0,0))+
+  scale_x_continuous(limits=c(1966, 2021), breaks = seq(1966, 2021, by = 1), expand=c(0,0))+
+  # scale_x_date(date_labels = "%Y", date_breaks = "1 year",
+  #              limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
+  
+  # scale_color_manual(name="Legenda", values = c("Discharge Trend"="#6a51a3"),
+  #                    guide = guide_legend(override.aes = list(linetype = c(1), size = c(1.2), shape=c(NA))))+
+  
+  stat_poly_eq(data=landsat_serie_anual, aes(x=landsat_dt_year, y=ssc_prediction),
+               label.x.npc = 0.025, label.y.npc = 0.9, colour="#FF0000",
+               formula = y~x, parse = TRUE, size = 4) +
+  stat_correlation(data=landsat_serie_anual, aes(x=landsat_dt_year, y=ssc_prediction),
+                   label.x = 0.025, label.y = 0.95, colour="#FF0000", parse = TRUE, size = 4, small.r = TRUE) +
+  
+  ylab("Avagare Discharge (m³/s)")+
+  theme_clean()+
+  theme(
+    legend.position = "top",
+    legend.margin = margin(0, 0,0,0,"cm"),
+    legend.key = element_blank(),
+    legend.title = element_blank(),
+    legend.key.width = unit(1, "cm"),
+    legend.background = element_rect(color = NA),
+    axis.text =  element_text(size=10),
+    axis.title = element_text(size=12, face = 'bold'),
+    axis.title.y.right = element_text(color="#000000"),
+    axis.title.y.left = element_text(color="#000000"),
+    axis.text.x=element_text(angle=60, hjust=1),
+    plot.background = element_blank())
+
+
+
 #### Serie Historia CSS e Vazao ####
 
 generatePredictedHistoricalSerieByStation(landsat_serie, vazao_data, vazao_serie_decomposta, landsat_serie_decomposta)
 
-
-
+generateLinearPredictedHistoricalSerieByStation(landsat_serie, vazao_data_anual, vazao_serie_decomposta, landsat_serie_decomposta)
 

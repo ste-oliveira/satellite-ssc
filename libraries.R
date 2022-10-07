@@ -1,14 +1,4 @@
-##### Carregar os pacotes que serão usados #####
-
-#install.packages("pacman")
-library(pacman)
-
-pacman::p_load(plyr, dplyr, ggplot2, car, rstatix, lmtest, ggpubr)
-
-
-#install.packages("ggplot2")
-
-#install.packages("https://cran.r-project.org/src/contrib/Archive/rlang/rlang_0.4.10.tar.gz", repo=NULL, type="source")
+#### LIBRARY IMPORTS ####
 
 #install.packages("wrapr")
 library(Metrics)
@@ -64,19 +54,11 @@ library(plotly)
 #install.packages("data.table")
 library(data.table)
 
-#remove.packages('dplyr')
 #install.packages("dplyr")
 library(dplyr) #hoping to move away from dplyr
 
 #install.packages("tidyverse")
-library(tidyverse)
-
-#install.packages("cli")
-library(cli)
-
-#install.packages("scales") 
-#install.packages("devtools")
-#devtools::install_github("tidyverse/tidyverse")
+#library(tidyverse)
 
 #install.packages("tidyquant")
 library(tidyquant)
@@ -101,10 +83,6 @@ library(NbClust)
 
 #install.packages("zoo")
 library(zoo)
-
-#remove.packages("sp")
-#install.packages("sp")
-library(sp)
 
 #install.packages("segmented")
 library(segmented)
@@ -137,10 +115,12 @@ library(np)
 library(automap)
 
 #detach("package:sp", unload = TRUE)
-
+#install.packages("sp", dep = TRUE)
+require (sp)
+library(sp)
 
 #install.packages("USAboundaries")
-#library(USAboundaries)
+library(USAboundaries)
 
 #install.packages("sf")
 library(sf)
@@ -148,76 +128,35 @@ library(sf)
 #install.packages("rgeos")
 library(rgeos)
 
-#install.packages("raster")
- library(raster)
- 
-#install.packages("rgdal")
- library(rgdal)
- 
+# #install.packages("raster")
+# library(raster)
+# 
+# #install.packages("rgdal")
+# library(rgdal)
+# 
 #install.packages("maptools")
 library(maptools)
 
 #install.packages("PBSmapping")
 library(PBSmapping)
 
-#install.packages("cluster")
 library(cluster)
-
 library(factoextra)
 library(FactoMineR)
- 
-#library(viridis)
-
+# library(viridis)
 library(SimDesign)
 library(car)
 library(rstanarm)
 library(jtools)
-library(lattice)
-
-#install.packages("usethis")
-library(usethis)
-
-#install.packages("devtools")
-library(devtools)
-
-#remove.packages("vctrs")
-#install.packages("vctrs")
-library(vctrs)
-
-#update.packages('rlang')
-library(rlang)
-
-#install.packages('caret')
-#update.packages('caret')
 library(caret)
-
 library(SciViews)
 library(equatiomatic)
 library(pals)
 library(ggpmisc)
 library(visreg)
-
-#install.packages("ggstance")
-library(ggstance)
-
-#remove.packages("stringi")
-#install.packages("stringi")
-library(stringi)
-
-#remove.packages("tibble")
-#install.packages("tibble")
-library(tibble)
-
-#old.packages()
-#update.packages(ask = FALSE)
-
-#install.packages("timeSeries")
 library(timeSeries)
-#install.packages("Kendall")
 library(Kendall)
-#install.packages("trend")
 library(trend)
-#install.packages("tseries")
 library(tseries)
-
-
+library(mice)
+library(dplR)
