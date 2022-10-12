@@ -219,13 +219,13 @@ generatePredictedHistoricalSerieByStation <- function(landsat_serie, vazao_data,
       
       geom_line(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction), size=0.5, color="#888888") +
       geom_point(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction, colour=sensor), size=2) +
-      geom_line(data=landsat_serie_decomposta, aes(x=landsat_dt, y=trend,  colour="SSC Trend"), size=1.2)+
+      geom_line(data=landsat_serie_decomposta, aes(x=landsat_dt, y=trend,  colour="SSC Linear Regression"), size=1.2)+
       
       scale_y_continuous(limits=c(0, 1800), breaks = seq(0, 1800, by = 200), expand=c(0,0))+
       scale_x_date(date_labels = "%Y", date_breaks = "1 year",
                    limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
       
-      scale_color_manual(name="Legenda", values = c("Landsat 5"="#66c2a4", "Landsat 7"="#41ae76", "SSC Trend"="#cb181d"),
+      scale_color_manual(name="Legenda", values = c("Landsat 5"="#66c2a4", "Landsat 7"="#41ae76", "SSC Linear Regression"="#cb181d"),
                          guide = guide_legend(override.aes = list(linetype = c(0, 0, 1), size = c(4, 4, 1.2), shape=c(16,16,NA))))+
       
       ylab("Estimated SSC (mg/L)")+
@@ -249,13 +249,13 @@ generatePredictedHistoricalSerieByStation <- function(landsat_serie, vazao_data,
     
     vazaoplot <-ggplot() + 
       geom_area(aes(x=vazao_data_station$Data, y=vazao_data_station$Media, fill="Mean Monthly Discharge") ) +
-      geom_line(data=vazao_serie_decomposta, aes(x=data, y=trend,  colour="Discharge Trend"), size=1.2)+
+      geom_line(data=vazao_serie_decomposta, aes(x=data, y=trend,  colour="Discharge Linear Regression"), size=1.2)+
       
       scale_y_continuous(limits=c(0, 1200), breaks = seq(0, 1200, by = 100), expand=c(0,0))+
       scale_x_date(date_labels = "%Y", date_breaks = "1 year",
                    limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
       
-      scale_color_manual(name="Legenda", values = c("Discharge Trend"="#6a51a3"),
+      scale_color_manual(name="Legenda", values = c("Discharge Linear Regression"="#6a51a3"),
                          guide = guide_legend(override.aes = list(linetype = c(1), size = c(1.2), shape=c(NA))))+
 
       scale_fill_manual(name="Legenda", values = c("Mean Monthly Discharge"="#9ecae1"))+
@@ -303,13 +303,13 @@ generateLinearPredictedHistoricalSerieByStation <- function(landsat_serie, vazao
     #   
     #   geom_line(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction), size=0.5, color="#888888") +
     #   geom_point(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction, colour=sensor), size=2) +
-    #   geom_line(data=landsat_serie_decomposta, aes(x=landsat_dt, y=trend,  colour="SSC Trend"), size=1.2)+
+    #   geom_line(data=landsat_serie_decomposta, aes(x=landsat_dt, y=trend,  colour="SSC Linear Regression"), size=1.2)+
     #   
     #   scale_y_continuous(limits=c(0, 1800), breaks = seq(0, 1800, by = 200), expand=c(0,0))+
     #   scale_x_date(date_labels = "%Y", date_breaks = "1 year",
     #                limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
     #   
-    #   scale_color_manual(name="Legenda", values = c("Landsat 5"="#66c2a4", "Landsat 7"="#41ae76", "SSC Trend"="#cb181d"),
+    #   scale_color_manual(name="Legenda", values = c("Landsat 5"="#66c2a4", "Landsat 7"="#41ae76", "SSC Linear Regression"="#cb181d"),
     #                      guide = guide_legend(override.aes = list(linetype = c(0, 0, 1), size = c(4, 4, 1.2), shape=c(16,16,NA))))+
     #   
     #   ylab("Estimated SSC (mg/L)")+
@@ -333,13 +333,13 @@ generateLinearPredictedHistoricalSerieByStation <- function(landsat_serie, vazao
     
     vazaoplot <-ggplot() + 
       geom_area(aes(x=vazao_data_station$Data, y=vazao_data_station$anual, fill="Mean Monthly Discharge") ) +
-      #geom_line(data=vazao_serie_decomposta, aes(x=data, y=trend,  colour="Discharge Trend"), size=1.2)+
+      #geom_line(data=vazao_serie_decomposta, aes(x=data, y=trend,  colour="Discharge Linear Regression"), size=1.2)+
       
       scale_y_continuous(limits=c(0, 1200), breaks = seq(0, 1200, by = 100), expand=c(0,0))+
       scale_x_date(date_labels = "%Y", date_breaks = "1 year",
                    limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
       
-      # scale_color_manual(name="Legenda", values = c("Discharge Trend"="#6a51a3"),
+      # scale_color_manual(name="Legenda", values = c("Discharge Linear Regression"="#6a51a3"),
       #                    guide = guide_legend(override.aes = list(linetype = c(1), size = c(1.2), shape=c(NA))))+
       
       scale_fill_manual(name="Legenda", values = c("Mean Monthly Discharge"="#9ecae1"))+
@@ -486,7 +486,7 @@ generateBoxPlotPredictedHistoricalSerieByStation <- function(landsat_serie, vaza
       # scale_x_date(date_labels = "%Y", date_breaks = "1 year",
       #              limits = as.Date(c("1984-01-01","2021-01-01")), expand = c(0, 0))+
       
-      # scale_color_manual(name="Legenda", values = c("Discharge Trend"="#6a51a3"),
+      # scale_color_manual(name="Legenda", values = c("Discharge Linear Regression"="#6a51a3"),
       #                    guide = guide_legend(override.aes = list(linetype = c(1), size = c(1.2), shape=c(NA))))+
       
       ylab("Log (Estimated SSC (mg/L))")+
@@ -506,11 +506,10 @@ generateBoxPlotPredictedHistoricalSerieByStation <- function(landsat_serie, vaza
         axis.text.x=element_text(angle=60, hjust=1),
         plot.background = element_blank())
     
-    
     plot(precipitacaoplot)
 }
 
-generatePredictedHistoricalSerie <- function(landsat_serie, vazao_data, max_ssc_prediction_by_year, pluviometria_data){
+generatePredictedHistoricalSerie <- function(landsat_serie, vazao_data, max_ssc_prediction_by_year, pluviometria_data, ssc_discharge_serie){
   stations_predicted <- data.frame(landsat_serie[, .(station_nm), .(station_nm)])[,1]
   
   for(station in stations_predicted){
@@ -524,123 +523,147 @@ generatePredictedHistoricalSerie <- function(landsat_serie, vazao_data, max_ssc_
       dir.create(wd_exports_station)
     }
     
-    ssc_bSm <- pass.filt(y=10^predictedSSC_station$ssc_prediction, W=0.01, type="low", method="Butterworth")
-    ssc_cSm <- pass.filt(y=10^predictedSSC_station$ssc_prediction, W=0.01, type="low", method="ChebyshevI")
+    pluviometria_cSm <- pass.filt(y=pluviometria_data$Total, W=0.01, type="low", method="ChebyshevI")
     
-    predictplot <-ggplot() +
+    pluviometria_data_1974 <- pluviometria_data[Data<"1974-01-01"]
+    pluviometria_data_2021 <- pluviometria_data[Data>"1976-01-01"]
+    
+    precipitacaoplot <-ggplot() +
+      geom_line(aes(x=pluviometria_data_1974$Data, y=pluviometria_data_1974$Total, color="Rainfall"), size=1) +
+      geom_line(aes(x=pluviometria_data_2021$Data, y=pluviometria_data_2021$Total, color="Rainfall"), size=1) +
       
-      geom_line(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction), size=1, color="#ecd9c6") +
-      geom_point(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction, colour=sensor), size=3) +
+      geom_line(aes(x=pluviometria_data$Data, y=pluviometria_cSm, color="Rainfall Low Pass Filtered"), size=1.5) +
+      
+      stat_smooth(data=pluviometria_data_1974, aes(x=Data, y=Total, color="Rainfall Linear Regression"),
+                  formula = y~x, method="lm", se=F, size=1.2, linetype = "dashed")+
+      stat_poly_eq(data=pluviometria_data_1974, aes(x=Data, y=Total, label=paste("(1966-1974)",..rr.label.., sep = "~~~")),
+                   label.x.npc = 0.015, label.y.npc = 1, colour="#08306b",
+                   formula = y~x, parse = TRUE, size = 4) +
+      
+      stat_smooth(data=pluviometria_data_2021, aes(x=Data, y=Total, color="Rainfall Linear Regression"),
+                  formula = y~x, method="lm", se=F, size=1.2, linetype = "dashed")+
+      stat_poly_eq(data=pluviometria_data_2021, aes(x=Data, y=Total, label=paste("(1976-2021)",..rr.label.., sep = "~~~")),
+                   label.x.npc = 0.015, label.y.npc = 0.9, colour="#08306b",
+                   formula = y~x, parse = TRUE, size = 4) +
 
-      geom_line(aes(x=predictedSSC_station$landsat_dt, y=ssc_bSm), size=1.5, color="#08519c") +
-      geom_line(aes(x=predictedSSC_station$landsat_dt, y=ssc_cSm), size=1.5, color="#b35806") +
-      
-      # stat_smooth(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction, color="SSC Trend"), method="lm",
-      #             linetype = "dashed", se=F, size=1.2, formula = y~x)+
-      # stat_poly_eq(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction),
-      #              label.x.npc = 0.025, label.y.npc = 0.95, colour="#66bd63",
-      #              formula = y~x, parse = TRUE, size = 4) +
-      
-      geom_point(data=max_ssc_prediction_by_year_station, aes(x=landsat_dt,y=10^ssc_prediction), size=4, color="#996633")+
-      # stat_smooth(data=max_ssc_prediction_by_year_station, aes(x=landsat_dt,y=10^ssc_prediction),
-      #             formula = y~x, method="lm", se=F, size=1.2, color="#875454", linetype = "dashed")+
-      # stat_poly_eq(data=max_ssc_prediction_by_year_station, aes(x=landsat_dt,y=10^ssc_prediction),
-      #              label.x.npc = 0.025, label.y.npc = 0.9,
-      #              formula = y~x, parse = TRUE, size = 4, color="#875454") +
-      
-      # geom_ma(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction), ma_fun=SMA, n=31, color="blue", size=1.5, linetype=1)+
-      
       scale_x_date(date_labels = "%Y", date_breaks = "1 year",
                    limits = as.Date(c("1966-01-01","2021-01-01")), expand = c(0, 0))+
-      scale_y_continuous(limits=c(0, 2100), breaks = seq(0, 2000, by = 200), expand=c(0,0))+
+      scale_y_continuous(limits=c(0, 600), breaks = seq(0, 600, by = 100), expand=c(0,0))+
       
-      scale_color_manual(name="Legenda", values = c("Landsat 5"="#d2a679", "Landsat 7"="#d2a679", "SSC Trend"="#A78AB2"))+
-      ylab("Estimated SSC (mg/L)")+
-      theme_clean()+
-      theme(
-        legend.position="none",
-        axis.text =  element_text(size=10),
-        axis.title = element_text(size=12, face = 'bold'),
-        axis.title.x =element_blank(),
-        axis.title.y.right = element_text(color="#999999"),
-        axis.title.y.left = element_text(color="#000000"),
-        axis.text.x=element_text(angle=60, hjust=1),
-        plot.background = element_blank())
+      scale_color_manual(name=NULL, values = c("Rainfall"="#9ecae1", "Rainfall Low Pass Filtered"="#2171b5", 
+                                               "Rainfall Linear Regression"="#08306b"),
+                         guide = guide_legend(override.aes = list(linetype = c(1, 2, 2), size = c(1.2, 1.2, 1.2))))+
+      
+      ylab("Monthly Rainfall \n (mm)") +
+      custom_theme
     
     
     vazao_bSm <- pass.filt(y=vazao_data$Media, W=0.01, type="low", method="Butterworth")
     vazao_cSm <- pass.filt(y=vazao_data$Media, W=0.01, type="low", method="ChebyshevI")
    
     vazaoplot <-ggplot() +
-      geom_point(aes(x=vazao_data_station$Data, y=vazao_data_station$Media), size=2, color="#6baed6")+
-      geom_line(aes(x=vazao_data_station$Data, y=vazao_data_station$Media), size=0.5, color="#6baed6") +
+      geom_line(aes(x=vazao_data_station$Data, y=vazao_data_station$Media, color="Discharge"), size=1) +
+      geom_line(aes(x=vazao_data_station$Data, y=vazao_cSm, color="Discharge Low Pass Filtered"), size=1.5) +
       
-      geom_line(aes(x=vazao_data_station$Data, y=vazao_bSm), size=1.5, color="#08519c") +
-      geom_line(aes(x=vazao_data_station$Data, y=vazao_cSm), size=1.5, color="#b35806") +
-      
-      # geom_ma(aes(x=vazao_data_station$Data, y=vazao_data_station$Media), ma_fun=SMA, n=61, color="#08519c", size=1.5, linetype=1)+
-      
-      scale_x_date(date_labels = "%Y", date_breaks = "1 year",
-                   limits = as.Date(c("1966-01-01","2021-01-01")), expand = c(0, 0))+
-      
-      scale_y_continuous(limits=c(0, 1100), breaks = seq(0, 3000, by = 100), expand=c(0,0))+
-      ylab("Discharge (m³/s)")+
-      theme_clean()+
-      theme(
-        axis.text =  element_text(size=10),
-        axis.title = element_text(size=12, face = 'bold'),
-        axis.title.x =element_blank(),
-        axis.title.y.right = element_text(color="#999999"),
-        axis.title.y.left = element_text(color="#000000"),
-        axis.text.x=element_text(angle=60, hjust=1),
-        plot.background = element_blank())
-    
-    
-    pluviometria_bSm <- pass.filt(y=pluviometria_data$Total, W=0.01, type="low", method="Butterworth")
-    pluviometria_cSm <- pass.filt(y=pluviometria_data$Total, W=0.01, type="low", method="ChebyshevI")
-    
-    
-    pluviometria_data_1974 <- pluviometria_data[Data<"1974-01-01"]
-    pluviometria_data_2021 <- pluviometria_data[Data>"1976-01-01"]
-    
-    precipitacaoplot <-ggplot() +
-      geom_line(aes(x=pluviometria_data_1974$Data, y=pluviometria_data_1974$Total), size=0.5, color="#9e9ac8") +
-      geom_point(aes(x=pluviometria_data_1974$Data, y=pluviometria_data_1974$Total), color="#9e9ac8", size=2)+
-
-      geom_line(aes(x=pluviometria_data_2021$Data, y=pluviometria_data_2021$Total), size=0.5, color="#9e9ac8") +
-      geom_point(aes(x=pluviometria_data_2021$Data, y=pluviometria_data_2021$Total), color="#9e9ac8", size=2)+
-
-      # geom_ma(aes(x=pluviometria_data_2021$Data, y=pluviometria_data_2021$Total), ma_fun=SMA, n=61, color="#54278f", size=1.5, linetype=1)+
-      # geom_ma(aes(x=pluviometria_data_1974$Data, y=pluviometria_data_1974$Total), ma_fun=SMA, n=61, color="#54278f", size=1.5, linetype=1)+
-      
-      geom_line(aes(x=pluviometria_data$Data, y=pluviometria_bSm), size=1.5, color="#08519c") +
-      geom_line(aes(x=pluviometria_data$Data, y=pluviometria_cSm), size=1.5, color="#b35806") +
+      stat_smooth(data=vazao_data_station, aes(x=Data, y=Media, colour="Discharge Linear Regression"),
+                  formula = y~x, method="lm", se=F, size=1.2, linetype = "dashed")+
+      stat_poly_eq(data=vazao_data_station, aes(x=Data, y=Media),
+                                label.x.npc = 0.015, label.y.npc = 0.97, colour="#3f007d",
+                                formula = y~x, parse = TRUE, size = 4) +
       
       scale_x_date(date_labels = "%Y", date_breaks = "1 year",
                    limits = as.Date(c("1966-01-01","2021-01-01")), expand = c(0, 0))+
-      scale_y_continuous(limits=c(0, 500), breaks = seq(0, 500, by = 50), expand=c(0,0))+
-      ylab("Precipitation (mm)")+
-      theme_clean()+
-      theme(
-        axis.text =  element_text(size=10),
-        axis.title = element_text(size=12, face = 'bold'),
-        axis.title.x =element_blank(),
-        axis.title.y.right = element_text(color="#999999"),
-        axis.title.y.left = element_text(color="#000000"),
-        axis.text.x=element_text(angle=60, hjust=1),
-        plot.background = element_blank())
+      scale_y_continuous(limits=c(0, 1200), breaks = seq(0, 1200, by = 200), expand=c(0,0))+
+      
+      scale_color_manual(name=NULL, values = c("Discharge"="#bcbddc", "Discharge Low Pass Filtered"="#6a51a3", 
+                                               "Discharge Linear Regression"="#3f007d"),
+                         guide = guide_legend(override.aes = list(linetype = c(1, 2, 2), size = c(1.2, 1.2, 1.2))))+
+      
+      ylab("Monthly Discharge \n (m³/s)")+
+      custom_theme
     
-    plot(precipitacaoplot)
-    # plot(precipitacaoplot)
     
-    ggsave(predictplot, filename = paste0(wd_exports_station, '/ssc_', station, '.png'), 
-           width = 10, height = 6) 
-    ggsave(vazaoplot, filename = paste0(wd_exports_station, '/vazao_', station, '.png'), 
-           width = 10, height = 6) 
+    ssc_cSm <- pass.filt(y=10^predictedSSC_station$ssc_prediction, W=0.01, type="low", method="ChebyshevI")
+    
+    predictplot <-ggplot() +
+      geom_line(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction), size=1, color="#fee8c8") +
+      geom_point(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction, colour=sensor), size=1) +
+      
+      geom_line(aes(x=predictedSSC_station$landsat_dt, y=ssc_cSm, color="SSC Low Pass Filtered"), size=1.5) +
+      
+      stat_smooth(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction, color="SSC Linear Regression"), method="lm",
+                  linetype = "dashed", se=F, size=1.2, formula = y~x)+
+      stat_poly_eq(data=predictedSSC_station, aes(x=landsat_dt, y=10^ssc_prediction, label=paste("(SSC)",..rr.label.., sep = "~~~")),
+                   label.x.npc = 0.015, label.y.npc = 1, colour="#b30000",
+                   formula = y~x, parse = TRUE, size = 4) +
+      
+      geom_point(data=max_ssc_prediction_by_year_station, aes(x=landsat_dt,y=10^ssc_prediction, color="SSC Annual Max"), size=2)+
+      stat_smooth(data=max_ssc_prediction_by_year_station, aes(x=landsat_dt,y=10^ssc_prediction, color="SSC Annual Max Linear Regression"),
+                  formula = y~x, method="lm", se=F, size=1.2, linetype = "dashed")+
+      stat_poly_eq(data=max_ssc_prediction_by_year_station, 
+                   aes(x=landsat_dt,y=10^ssc_prediction,label=paste("(SSC~~~Annual~~~Max)",..rr.label.., sep = "~~~")),
+                     label.x.npc = 0.015, label.y.npc = 0.9,
+                     formula = y~x, parse = TRUE, size = 4, color="#fb6a4a") +
+       
+      scale_x_date(date_labels = "%Y", date_breaks = "1 year",
+                   limits = as.Date(c("1966-01-01","2021-01-01")), expand = c(0, 0))+
+      scale_y_continuous(limits=c(0, 2400), breaks = seq(0, 2400, by = 400), expand=c(0,0))+
+      
+      scale_color_manual(name=NULL, values = c("Landsat 5"="#fdbb84", "Landsat 7"="#fc8d59", "SSC Linear Regression"="#b30000", 
+                                               "SSC Low Pass Filtered"="#ef6548", "SSC Annual Max"="#ef3b2c", 
+                                               "SSC Annual Max Linear Regression"="#fb6a4a"),
+                         guide = guide_legend(override.aes = list(linetype = c(0, 0, 2, 2, 0, 2), size = c(2, 2, 1.2, 1.2, 3, 1.2),
+                                                                  shape=c(16, 16, NA, NA, 16, NA))))+
+      ylab("Estimated SSC \n (mg/L)")+
+      custom_theme 
+
+    ssc_discharge_cSm <- pass.filt(y=ssc_discharge_serie$Descarga, W=0.01, type="low", method="ChebyshevI")
+    
+    ssc_discharge_plot <-ggplot() +
+      geom_line(aes(x=ssc_discharge_serie$Data, y=ssc_discharge_serie$Descarga, color="SSD"), size=1) +
+      
+      geom_line(aes(x=ssc_discharge_serie$Data, y=ssc_discharge_cSm, colour="SSD Low Pass Filtered"), size=1.5) +
+      stat_smooth(data=ssc_discharge_serie, aes(x=Data, y=Descarga, colour="SSD Linear Regression"),
+                  formula = y~x, method="lm", se=F, size=1.2, linetype = "dashed")+
+      stat_poly_eq(data=ssc_discharge_serie, aes(x=Data, y=Descarga),
+                   label.x.npc = 0.015, label.y.npc = 0.97,
+                   formula = y~x, parse = TRUE, size = 4, color="#7f2704") +
+      
+      scale_x_date(date_labels = "%Y", date_breaks = "1 year",
+                   limits = as.Date(c("1966-01-01","2021-01-01")), expand = c(0, 0))+
+      scale_y_continuous(limits=c(0, 100000), breaks = seq(0, 100000, by = 20000), expand=c(0,0))+
+      
+      scale_color_manual(name=NULL, values = c("SSD"="#fd8d3c", "SSD Low Pass Filtered"="#d94801", 
+                                               "SSD Linear Regression"="#7f2704"),
+                         guide = guide_legend(override.aes = list(linetype = c(1, 2, 2), size = c(1.2, 1.2, 1.2))))+
+      
+      ylab("SSD \n (ton/day)") +
+      custom_theme
+    
+    plotarrange <- ggarrange(precipitacaoplot, vazaoplot, predictplot, ssc_discharge_plot, nrow=4, ncol=1,
+                             labels = c("A", "B", "C", "D"), font.label = list(size = 18))
+    ggsave(plotarrange, filename = paste0(wd_figures,'plotarrange.png'), width = 11, height = 14)
+    
+    
     break;
     
   }
 }
 
-
+custom_theme <- theme_clean() +
+  theme(
+    text=element_text(family="Arial"),
+    axis.text =  element_text(size=12),
+    axis.title = element_text(size=14, face = 'bold'),
+    axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+    axis.title.x =element_blank(),
+    axis.text.x=element_text(angle=60, hjust=1),
+    plot.background = element_rect(fill = "white", colour = "white"),
+    legend.text = element_text(size=12),
+    legend.key.height = unit(0.2, "cm"),
+    legend.key.width = unit(1.2, "cm"),
+    legend.justification= c(1, 1),
+    legend.position = c(1, 1),
+    legend.box = "horizontal",
+    legend.direction = "horizontal")
 

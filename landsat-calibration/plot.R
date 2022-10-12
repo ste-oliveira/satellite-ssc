@@ -195,7 +195,6 @@ plotErrorLM <- function(ls_sr_insitu_data, r_squared, rmse){
    
    ggsave(errro_lm_plot, filename = paste0(wd_exports, 'error_lm_plot.png'), width = 6, height = 6)
    
-   
 }
 
 plotRelativeError <- function(ssc_model_cl_iterate_rerr){

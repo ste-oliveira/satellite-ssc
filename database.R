@@ -1,29 +1,3 @@
-###### Carregar o banco de dados #####
-
-# Importante: selecionar o diretorio de trabalho (working directory)
-# Isso pode ser feito manualmente: Session > Set Working Directory > Choose Directory
-
-##dados <- read.csv2('Banco de Dados 11.csv') # Carregamento do arquivo csv
-##glimpse(dados)                              # Visualizacao de um resumo dos dados
-
-
-# set projection for states shapefile
-#projection <- CRS("+proj=longlat +datum=WGS84 +no_defs")
-
-# import taquari provinces
-#taquari <- read_sf(dsn = "imports/estacoes_sed_gee_taquari_2.shp", layer = "estacoes_sed_gee_taquari")
-#taquari_geom <- st_geometry(taquari)
-# attributes(taquari_geom)
-
-# convert shapefile to Spatial class
-#taquari <- as(taquari, 'Spatial')
-#taquari <- spTransform(taquari, projection)
-
-# fortify state shapefile.
-#taquari <- fortify(taquari)
-
-#####Se quiser visualizar os pontos, descomenta a linha abaixo
-#plot(taquari)
 
 #### FUNCTION IMPORT IN SITU DATA ###
 importInSituData <- function(){
@@ -39,14 +13,6 @@ importInSituData <- function(){
   return(insitu_data)
 }
 
-#insitu_data$ConcentracaoMatSuspensao = as.double(insitu_data$ConcentracaoMatSuspensao)
-
-ls_sr_raw <- fread("ssc_data_landsat_coxim.csv")
-#View(ls_sr_raw)
-
-#library(conflicted)
-#library(dplyr)
-#library(plyr)
 
 ### FUNCTION IMPORT GEE DATA ###
 # Display log axes labels nicely
@@ -188,3 +154,56 @@ getLandsatHistoricalSerie <- function(ls_sr_data){
   return(landsat_serie)
 }
 
+getPluviometricHistoricalSerie <- function(){
+  
+  pluviometric_data_ana <- na.omit(fread('imports/pluviometria/COXIM_PLUVIOMETRIA.csv'))
+  pluviometric_data_bat <- na.omit(fread('imports/pluviometria/Precipacao_BAT.csv'))
+  
+  pluviometric_data_ana <- transmute(pluviometric_data_ana, 
+                                 month=month(dmy(Data)),
+                                 year=year(dmy(Data)),
+                                 Data=dmy(Data),
+                                 Total = as.numeric(Total)) %>% distinct()
+  
+  pluviometric_data_bat <- transmute(pluviometric_data_bat, 
+                                     month=month(dmy(Data)),
+                                     year=year(dmy(Data)),
+                                     Data=dmy(Data),
+                                     Total = as.numeric(Total)) %>% distinct()
+  
+  pluviometric_data_merged <- rbind(pluviometric_data_ana, pluviometric_data_bat)
+  
+  return(pluviometric_data_merged)
+}
+
+
+getDischargeHistoricalSerie <- function(){
+  
+  vazao_data <- na.omit(fread('imports/vazao/VAZOES_ESTACOES.csv'))[EstacaoCodigo==66870000,]
+  vazao_data <- mutate(vazao_data, 
+                       EstacaoCodigo=as.character(EstacaoCodigo), 
+                       month=month(dmy(Data)),
+                       year=year(dmy(Data)),
+                       Data=dmy(Data),
+                       Media = as.numeric(Media)) %>% 
+    distinct()
+  vazao_data <-  na.omit(vazao_data[order(vazao_data$Data)])
+  
+  return(vazao_data)
+}
+
+getSSCDischargeHistoricalSerie <- function(){
+  
+  ssc_discharge_data <- na.omit(fread('imports/descarga_sedimentar/Barbedo_Taquari_2.csv'))
+  ssc_discharge_data <- mutate(ssc_discharge_data, 
+                       Data=dmy(Data),
+                       month=month(Data),
+                       year=year(Data),
+                       Descarga = as.numeric(Descarga))
+   
+  ssc_discharge_data <-  na.omit(ssc_discharge_data[order(ssc_discharge_data$Data)])
+  
+  
+  
+  return(ssc_discharge_data)
+}
