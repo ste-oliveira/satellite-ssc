@@ -555,7 +555,8 @@ generatePredictedHistoricalSerie <- function(landsat_serie, vazao_data, max_ssc_
                          guide = guide_legend(override.aes = list(linetype = c(1, 2, 2), size = c(1.2, 1.2, 1.2))))+
       
       ylab("Monthly Rainfall \n (mm)") +
-      custom_theme
+      custom_theme +
+      theme( axis.title.x=element_blank())
     
     
     vazao_bSm <- pass.filt(y=vazao_data$Media, W=0.01, type="low", method="Butterworth")
@@ -580,7 +581,9 @@ generatePredictedHistoricalSerie <- function(landsat_serie, vazao_data, max_ssc_
                          guide = guide_legend(override.aes = list(linetype = c(1, 2, 2), size = c(1.2, 1.2, 1.2))))+
       
       ylab("Monthly Discharge \n (m³/s)")+
-      custom_theme
+      custom_theme +
+      theme( axis.title.x=element_blank())
+    
     
     
     ssc_cSm <- pass.filt(y=10^predictedSSC_station$ssc_prediction, W=0.01, type="low", method="ChebyshevI")
@@ -615,7 +618,9 @@ generatePredictedHistoricalSerie <- function(landsat_serie, vazao_data, max_ssc_
                          guide = guide_legend(override.aes = list(linetype = c(0, 0, 2, 2, 0, 2), size = c(2, 2, 1.2, 1.2, 3, 1.2),
                                                                   shape=c(16, 16, NA, NA, 16, NA))))+
       ylab("Estimated SSC \n (mg/L)")+
-      custom_theme 
+      custom_theme +
+      theme( axis.title.x=element_blank())
+    
 
     ssc_discharge_cSm <- pass.filt(y=ssc_discharge_serie$Descarga, W=0.01, type="low", method="ChebyshevI")
     
@@ -638,16 +643,87 @@ generatePredictedHistoricalSerie <- function(landsat_serie, vazao_data, max_ssc_
                          guide = guide_legend(override.aes = list(linetype = c(1, 2, 2), size = c(1.2, 1.2, 1.2))))+
       
       ylab("SSD \n (ton/day)") +
-      custom_theme
+      custom_theme +
+      theme( axis.title.x=element_blank())
     
     plotarrange <- ggarrange(precipitacaoplot, vazaoplot, predictplot, ssc_discharge_plot, nrow=4, ncol=1,
                              labels = c("A", "B", "C", "D"), font.label = list(size = 18))
-    ggsave(plotarrange, filename = paste0(wd_figures,'plotarrange.png'), width = 11, height = 14)
+    ggsave(plotarrange, filename = paste0(wd_figures,'plotarrange.tiff'), width = 11, height = 14)
     
     
     break;
     
   }
+}
+
+generateSSCvsDischargePlot <- function(ssc_discharge){
+  ssc_dischargeplot <- ggplot() + 
+    geom_point(data=ssc_discharge, aes(x=Media, y=media_ssc_prediction),  fill="#99d8c9", color="#006d2c", alpha=0.7, pch = 21, size = 5 ) +
+    stat_smooth(data=ssc_discharge, aes(x=Media, y=media_ssc_prediction), color="#e31a1c", method="lm", se=F, size=1.5, formula = y~x)+
+    
+    scale_y_continuous(limits=c(0, 2000), breaks = seq(0, 2000, by = 200), expand=c(0,0))+
+    scale_x_continuous(limits=c(0, 1200), breaks = seq(0, 1200, by = 100), expand=c(0,0))+
+    
+    stat_poly_eq(data=ssc_discharge, aes(x=Media, y=media_ssc_prediction),
+                 label.x.npc = 0.985, label.y.npc = 0.975, colour="#e31a1c",
+                 formula = y~x, parse = TRUE, size = 4) +
+    stat_correlation(data=ssc_discharge, aes(x=Media, y=media_ssc_prediction),
+                     label.x = 0.985, label.y = 0.925, colour="#e31a1c", parse = TRUE, size = 4, small.r = TRUE) +
+    
+    ylab("Estimated SSC (mg/L)")+
+    xlab("Monthly Discharge (m³/s)")+
+    custom_theme
+  
+    ggsave(ssc_dischargeplot, filename = paste0(wd_figures,'ssc_dischargeplot.tiff'), width = 6, height = 6)
+  
+  
+}
+
+
+generateSSCvsRainfallPlot <- function(ssc_rainfall){
+  ssc_rainfallplot <- ggplot() + 
+    geom_point(data=ssc_rainfall, aes(x=Total, y=media_ssc_prediction),  fill="#99d8c9", color="#006d2c", alpha=0.7, pch = 21, size = 5 ) +
+    stat_smooth(data=ssc_rainfall, aes(x=Total, y=media_ssc_prediction), color="#e31a1c", method="lm", se=F, size=1.5, formula = y~x)+
+    
+    scale_y_continuous(limits=c(0, 2000), breaks = seq(0, 2000, by = 200), expand=c(0,0))+
+    scale_x_continuous(limits=c(0, 400), breaks = seq(0, 400, by = 50), expand=c(0,0))+
+    
+    stat_poly_eq(data=ssc_rainfall, aes(x=Total, y=media_ssc_prediction),
+                 label.x.npc = 0.985, label.y.npc = 0.975, colour="#e31a1c",
+                 formula = y~x, parse = TRUE, size = 4) +
+    stat_correlation(data=ssc_rainfall, aes(x=Total, y=media_ssc_prediction),
+                     label.x = 0.985, label.y = 0.925, colour="#e31a1c", parse = TRUE, size = 4, small.r = TRUE) +
+    
+    ylab("Estimated SSC (mg/L)")+
+    xlab("Monthly Rainfall (mm)")+
+    custom_theme
+  
+  ggsave(ssc_rainfallplot, filename = paste0(wd_figures,'ssc_rainfallplot.tiff'), width = 6, height = 6)
+  
+}
+
+
+generateSSCvsSSDPlot <- function(ssc_ssd){
+  ssc_ssdplot <- ggplot() + 
+    geom_point(data=ssc_ssd, aes(x=Descarga, y=media_ssc_prediction),  fill="#99d8c9", color="#006d2c", alpha=0.7, pch = 21, size = 5 ) +
+    stat_smooth(data=ssc_ssd, aes(x=Descarga, y=media_ssc_prediction), color="#e31a1c", method="lm", se=F, size=1.5, formula = y~x)+
+    
+    scale_y_continuous(limits=c(0, 2000), breaks = seq(0, 2000, by = 200), expand=c(0,0))+
+    scale_x_continuous(limits=c(0, 80000), breaks = seq(0, 80000, by = 10000), expand=c(0,0))+
+    
+    stat_poly_eq(data=ssc_ssd, aes(x=Descarga, y=media_ssc_prediction),
+                 label.x.npc = 0.985, label.y.npc = 0.975, colour="#e31a1c",
+                 formula = y~x, parse = TRUE, size = 4) +
+    stat_correlation(data=ssc_ssd, aes(x=Descarga, y=media_ssc_prediction),
+                     label.x = 0.985, label.y = 0.925, colour="#e31a1c", parse = TRUE, size = 4, small.r = TRUE) +
+    
+    ylab("Estimated SSC (mg/L)")+
+    xlab("SSD (ton/day)")+
+    custom_theme
+  
+  ggsave(ssc_ssdplot, filename = paste0(wd_figures,'ssc_ssdplot.tiff'), width = 6, height = 6)
+  
+  
 }
 
 custom_theme <- theme_clean() +
@@ -656,7 +732,7 @@ custom_theme <- theme_clean() +
     axis.text =  element_text(size=12),
     axis.title = element_text(size=14, face = 'bold'),
     axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
-    axis.title.x =element_blank(),
+    axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
     axis.text.x=element_text(angle=60, hjust=1),
     plot.background = element_rect(fill = "white", colour = "white"),
     legend.text = element_text(size=12),

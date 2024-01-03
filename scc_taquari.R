@@ -123,3 +123,12 @@ ssc_discharge_serie_mensal <- ssc_discharge_serie %>% group_by(month, year) %>%
 
 generatePredictedHistoricalSerie(landsat_serie, discharge_serie, max_ssc_prediction_by_year, pluviometric_serie, ssc_discharge_serie)
 
+ssc_discharge <- na.omit(left_join(landsat_serie_mensal, discharge_serie, by = c("landsat_dt_year" = "year", "landsat_dt_month" = "month")))
+ssc_rainfall <- na.omit(left_join(landsat_serie_mensal, pluviometric_serie, by = c("landsat_dt_year" = "year", "landsat_dt_month" = "month")))
+ssc_ssd <- na.omit(left_join(landsat_serie_mensal, ssc_discharge_serie_mensal, by = c("landsat_dt_year" = "year", "landsat_dt_month" = "month")))
+
+generateSSCvsDischargePlot(ssc_discharge)
+generateSSCvsRainfallPlot(ssc_rainfall)
+generateSSCvsSSDPlot(ssc_ssd)
+
+
